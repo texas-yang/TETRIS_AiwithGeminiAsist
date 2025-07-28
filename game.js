@@ -269,6 +269,7 @@ function playerHardDrop() {
  */
 function lockPieceAndReset() {
     // "Block Out" 게임 오버 조건을 확인합니다.
+    // 이 검사는 merge() 전에 수행되어야 합니다.
     // 조각이 보드 상단(보이는 영역 밖)에 고정되면 게임 오버입니다.
     for (let y = 0; y < player.matrix.length; y++) {
         for (let x = 0; x < player.matrix[y].length; x++) {
@@ -726,20 +727,18 @@ function setupTouchControls() {
  * @param {number} time - requestAnimationFrame이 제공하는 타임스탬프
  */
 function update(time = 0) {
-    if (isPaused) return;
-    if (isGameOver) return; // 게임 오버 상태일 때는 업데이트 중지
+    // 게임 루프는 isPaused나 isGameOver 상태가 되면 즉시 중단되어야 합니다.
+    // cancelAnimationFrame이 호출되었으므로 이 함수는 더 이상 실행되지 않지만,
+    // 만약을 대비한 방어 코드입니다.
+    if (isPaused || isGameOver) return;
 
     const deltaTime = time - lastTime;
     lastTime = time;
 
     dropCounter += deltaTime;
     if (dropCounter > dropInterval) {
-        playerDrop();
+        playerDrop(); // 이 함수 내부에서 게임 오버가 발생할 수 있습니다.
     }
-
-    // 게임 로직(playerDrop) 실행 후 게임 오버가 될 수 있으므로,
-    // 그리기 전에 한 번 더 확인하여 마지막 프레임이 덮어쓰는 것을 방지합니다.
-    if (isGameOver) return;
 
     draw();
     animationFrameId = requestAnimationFrame(update);
