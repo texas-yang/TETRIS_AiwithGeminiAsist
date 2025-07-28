@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Tetris</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Gemini Tetris</h1>
+    <div class="game-container">
+        <div class="game-board-wrapper">
+            <canvas id="game-board" width="300" height="600"></canvas>
+        </div>
+        <div class="sidebar">
+            <div>
+                <h2>SCORE</h2>
+                <p id="score">0</p>
+            </div>
+             <div>
+                <h2>HIGH SCORE</h2>
+                <p id="high-score">0</p>
+            </div>
+            <div>
+                <h2>NEXT</h2>
+                <canvas id="next-piece" width="120" height="120"></canvas>
+            </div>
+            <div>
+                <h2>HOLD</h2>
+                <canvas id="hold-piece" width="120" height="120"></canvas>
+            </div>
+            <div>
+                <h2>LEVEL</h2>
+                <p id="level">1</p>
+            </div>
+            <div id="difficulty-selector">
+                <h2>난이도</h2>
+                <div class="options">
+                    <div class="option-item">
+                        <input type="radio" id="diff-easy" name="difficulty" value="easy">
+                        <label for="diff-easy">쉬움</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="diff-normal" name="difficulty" value="normal" checked>
+                        <label for="diff-normal">보통</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="diff-hard" name="difficulty" value="hard">
+                        <label for="diff-hard">어려움</label>
+                    </div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="start-btn">시작하기</button>
+                <button id="pause-btn" disabled>일시정지</button>
+                <button id="restart-btn" disabled>처음으로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sound Effects -->
+    <audio id="sound-move" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/move.mp3" preload="auto"></audio>
+    <audio id="sound-rotate" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/rotate.mp3" preload="auto"></audio>
+    <audio id="sound-lock" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/lock.mp3" preload="auto"></audio>
+    <audio id="sound-clear" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/clear.mp3" preload="auto"></audio>
+    <audio id="sound-gameover" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/gameover.mp3" preload="auto"></audio>
+
+    <script src="game.js"></script>
+</body>
+
+<!-- Touch Controls (hidden by default) -->
+<div id="touch-controls">
+    <div class="touch-group touch-dpad">
+        <div class="row">
+            <button id="touch-left">⇦</button>
+            <button id="touch-right">⇨</button>
+        </div>
+        <button id="touch-down">⇩</button>
+    </div>
+    <div class="touch-group touch-actions">
+        <button id="touch-hold">H</button>
+        <button id="touch-rotate">↻</button>
+        <button id="touch-hard-drop">⟱</button>
+    </div>
+</div>
+</html>
