@@ -11,6 +11,7 @@ const highScoreElem = document.getElementById('high-score');
 const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const restartBtn = document.getElementById('restart-btn');
+const soundBtn = document.getElementById('sound-btn');
 
 // 게임 상수 정의
 const COLS = 10; // 가로 칸 수
@@ -81,6 +82,7 @@ const PIECES = {
 // --- 게임 상태 변수 ---
 let board;
 let player;
+let pieceBag; // 7-Bag 시스템을 위한 블록 가방
 let nextPieceType;
 let heldPieceType;
 let canHold;
@@ -98,6 +100,7 @@ let animationFrameId;
 let currentDifficulty; // 현재 난이도 설정
 let currentColors; // 현재 활성화된 색상 테마
 let isGameOver; // 게임 오버 상태를 추적하는 변수
+let isSoundOn; // 사운드 ON/OFF 상태
 
 const playerInitialState = {
     pos: { x: 0, y: 0 },
@@ -223,6 +226,20 @@ function playerMove(dir) {
 }
 
 /**
+ * 7-Bag 시스템을 위해 블록 가방을 섞고 다시 채웁니다.
+ */
+function refillPieceBag() {
+    const pieces = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+    // Fisher-Yates 셔플 알고리즘으로 블록 순서를 섞습니다.
+    for (let i = pieces.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+    }
+    pieceBag = pieces;
+}
+
+
+/**
  * 새 블록을 생성하고 위치를 초기화합니다. 게임오버를 체크합니다.
  */
 function playerReset() {
@@ -241,9 +258,12 @@ function playerReset() {
     }
     player.pos.y -= topRow;
 
-    // 다음 블록 생성 및 표시
-    const pieceChars = 'TJLOSZI';
-    nextPieceType = pieceChars[Math.floor(Math.random() * pieceChars.length)];
+    // 7-Bag 시스템에서 다음 블록을 가져옵니다.
+    if (pieceBag.length === 0) {
+        refillPieceBag();
+    }
+    nextPieceType = pieceBag.pop();
+
     drawNextPiece();
 
     if (collide(board, player)) {
@@ -283,6 +303,8 @@ function lockPieceAndReset() {
         }
     }
 
+    playSound('lock'); // 블록이 고정되는 시점에 항상 사운드를 재생합니다.
+
     merge(); // 1. 현재 조각을 보드에 먼저 합칩니다.
     sweepBoard();
 }
@@ -306,7 +328,6 @@ function sweepBoard() {
     if (rowsToClear.length > 0) {
         animateAndClearLines(rowsToClear);
     } else {
-        playSound('lock');
         playerReset();
         updateScoreAndLevel();
         dropCounter = 0;
@@ -364,6 +385,7 @@ function animateAndClearLines(rows) {
                     isBackToBack = false; // 일반 클리어 시 B2B 상태 해제
                     if (clearedLines === 2) bonusText = 'Double!';
                     if (clearedLines === 3) bonusText = 'Triple!';
+                    if (clearedLines === 4) bonusText = 'Quadruple!';
                 }
             }
 
@@ -439,8 +461,8 @@ function rotateMatrix(matrix, dir) {
             [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
         }
     }
-    if (dir > 0) matrix.forEach(row => row.reverse());
-    else matrix.reverse();
+    // 반시계 방향 회전: 전치 후 행의 순서를 뒤집습니다.
+    matrix.reverse();
 }
 
 /**
@@ -549,6 +571,7 @@ function startGame() {
     player = JSON.parse(JSON.stringify(playerInitialState)); // Deep copy
     score = 0;
     level = 1;
+    pieceBag = [];
     isPaused = false;
     lines = 0;
     heldPieceType = null;
@@ -563,9 +586,10 @@ function startGame() {
     updateScoreAndLevel();
     drawHoldPiece(); // 홀드 칸 비우기
 
-    // 첫 블록 생성 및 게임 루프 시작
-    const pieceChars = 'TJLOSZI';
-    nextPieceType = pieceChars[Math.floor(Math.random() * pieceChars.length)];
+    // 7-Bag 시스템으로 첫 블록들을 준비합니다.
+    refillPieceBag();
+    nextPieceType = pieceBag.pop();
+
     playerReset();
     update();
 
@@ -612,6 +636,7 @@ function drawGhostPiece() {
 
 /** 사운드를 재생하는 함수 */
 function playSound(id) {
+    if (!isSoundOn) return; // 사운드가 꺼져있으면 즉시 반환
     const sound = document.getElementById(`sound-${id}`);
     if (sound) {
         sound.currentTime = 0;
@@ -636,6 +661,29 @@ function showFloatingText(text) {
         });
     }
 }
+
+/**
+ * 사운드 ON/OFF 상태를 토글하고 UI를 업데이트합니다.
+ */
+function toggleSound() {
+    isSoundOn = !isSoundOn;
+    // 설정을 로컬 스토리지에 저장하여 브라우저를 껐다 켜도 유지되도록 합니다.
+    localStorage.setItem('tetrisSoundOn', isSoundOn);
+    updateSoundButton();
+}
+
+/**
+ * 사운드 버튼의 텍스트와 스타일을 현재 상태에 맞게 업데이트합니다.
+ */
+function updateSoundButton() {
+    soundBtn.textContent = isSoundOn ? 'Sound ON' : 'Sound OFF';
+    if (isSoundOn) {
+        soundBtn.classList.remove('sound-off');
+    } else {
+        soundBtn.classList.add('sound-off');
+    }
+}
+
 /**
  * 게임을 일시정지하거나 재개합니다.
  */
@@ -740,6 +788,12 @@ function update(time = 0) {
         playerDrop(); // 이 함수 내부에서 게임 오버가 발생할 수 있습니다.
     }
 
+    // playerDrop() 함수가 게임 오버를 유발했을 수 있습니다.
+    // 이 경우, handleGameOver()에 의해 그려진 'GAME OVER' 화면이
+    // 아래의 draw() 함수에 의해 지워지는 것을 방지하기 위해
+    // 즉시 게임 루프를 중단해야 합니다.
+    if (isGameOver) return;
+
     draw();
     animationFrameId = requestAnimationFrame(update);
 }
@@ -793,12 +847,19 @@ document.addEventListener('keydown', event => {
  * 게임 초기화
  */
 function init() {
-    // setupTouchControls 함수가 모바일 기기를 감지하고 필요한 클래스를 추가합니다.
+    // 로컬 스토리지에서 사운드 설정을 불러옵니다.
+    const savedSoundSetting = localStorage.getItem('tetrisSoundOn');
+    // 저장된 값이 없으면 true(ON)를 기본값으로, 있으면 해당 값을 boolean으로 변환합니다.
+    isSoundOn = savedSoundSetting === null ? true : (savedSoundSetting === 'true');
+    updateSoundButton();
 
     loadHighScore();
+
+    // 이벤트 리스너 등록
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', startGame); // '처음으로' 버튼 클릭 시 게임을 새로 시작
+    soundBtn.addEventListener('click', toggleSound);
     setupTouchControls(); // 터치 컨트롤 설정
 }
 

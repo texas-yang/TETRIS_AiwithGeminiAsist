@@ -1,8 +1,24 @@
+/* :root에 CSS 변수(커스텀 프로퍼티)를 정의하여 색상 및 스타일 관리를 용이하게 합니다. */
+:root {
+    --bg-dark-blue: #2c3e50;
+    --bg-mid-blue: #34495e;
+    --text-light: #ecf0f1;
+    --border-light: #7f8c8d;
+    --primary-red: #e74c3c;
+    --primary-red-hover: #c0392b;
+    --secondary-orange: #f39c12;
+    --secondary-orange-hover: #e67e22;
+    --tertiary-blue: #3498db;
+    --tertiary-blue-hover: #2980b9;
+    --disabled-gray: #7f8c8d;
+    --board-bg: #000;
+}
+
 /* 기본 스타일 초기화 및 페이지 전체 스타일 */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #2c3e50; /* 어두운 배경색 */
-    color: #ecf0f1; /* 밝은 글자색 */
+    background-color: var(--bg-dark-blue); /* 어두운 배경색 */
+    color: var(--text-light); /* 밝은 글자색 */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -12,7 +28,7 @@ body {
 }
 
 h1 {
-    color: #e74c3c;
+    color: var(--primary-red);
     text-shadow: 2px 2px 4px #000;
 }
 
@@ -20,10 +36,10 @@ h1 {
 .game-container {
     display: flex;
     gap: 20px; /* 게임 보드와 사이드바 사이 간격 */
-    border: 3px solid #ecf0f1;
+    border: 3px solid var(--text-light);
     padding: 20px;
     border-radius: 10px;
-    background-color: #34495e;
+    background-color: var(--bg-mid-blue);
     align-items: stretch; /* 자식 요소(게임 보드, 사이드바)의 높이를 강제로 동일하게 확장합니다. */
 }
 
@@ -34,8 +50,8 @@ h1 {
 
 /* 게임 보드 (Canvas) */
 #game-board {
-    border: 2px solid #7f8c8d;
-    background-color: #000; /* 블록이 잘 보이도록 검은색 배경 */
+    border: 2px solid var(--border-light);
+    background-color: var(--board-bg); /* 블록이 잘 보이도록 검은색 배경 */
     position: relative; /* For game over overlay */
 }
 
@@ -45,8 +61,8 @@ h1 {
     flex-direction: column;
     gap: 15px; /* 상단 요소들 사이의 간격을 설정합니다. */
     width: 150px; /* PC 화면에 맞게 너비 복원 */
-    text-align: center;
-    background-color: #2c3e50; /* 사이드바 전체에 배경색을 적용하여 하나의 패널처럼 보이게 합니다. */
+    text-align: center; 
+    background-color: var(--bg-dark-blue); /* 사이드바 전체에 배경색을 적용하여 하나의 패널처럼 보이게 합니다. */
     padding: 20px;
     border-radius: 5px;
 }
@@ -60,7 +76,7 @@ h1 {
 .sidebar h2 {
     margin: 0 0 10px 0;
     font-size: 1.2em;
-    color: #e74c3c;
+    color: var(--primary-red);
 }
 
 .sidebar p {
@@ -69,15 +85,10 @@ h1 {
     font-weight: bold;
 }
 
-/* 다음 블록을 보여주는 Canvas */
-#next-piece {
-    background-color: #000;
-    border: 2px solid #7f8c8d;
-}
-/* 홀드 블록을 보여주는 Canvas */
-#hold-piece {
-    background-color: #000;
-    border: 2px solid #7f8c8d;
+/* 다음 블록, 홀드 블록을 보여주는 Canvas 공통 스타일 */
+#next-piece, #hold-piece {
+    background-color: var(--board-bg);
+    border: 2px solid var(--border-light);
 }
 
 /* 버튼 공통 스타일 */
@@ -102,22 +113,34 @@ h1 {
 }
 
 #start-btn {
-    background-color: #e74c3c;
+    background-color: var(--primary-red);
 }
 #start-btn:hover {
-    background-color: #c0392b;
+    background-color: var(--primary-red-hover);
 }
 #pause-btn {
-    background-color: #f39c12; /* 주황색 */
+    background-color: var(--secondary-orange); /* 주황색 */
 }
 #pause-btn:hover {
-    background-color: #e67e22;
+    background-color: var(--secondary-orange-hover);
 }
 #restart-btn {
-    background-color: #3498db; /* 파란색 */
+    background-color: var(--tertiary-blue); /* 파란색 */
 }
 #restart-btn:hover {
-    background-color: #2980b9;
+    background-color: var(--tertiary-blue-hover);
+}
+
+/* 사운드 버튼 스타일 */
+#sound-btn {
+    background-color: #2ecc71; /* ON 상태일 때 초록색 */
+}
+#sound-btn:hover {
+    background-color: #27ae60;
+}
+#sound-btn.sound-off {
+    background-color: var(--disabled-gray); /* OFF 상태일 때 회색 */
+    color: var(--text-light);
 }
 
 /* 난이도 선택 스타일 */
@@ -147,30 +170,14 @@ h1 {
 
 #difficulty-selector input[type="radio"] {
     cursor: pointer;
-    accent-color: #e74c3c;
+    accent-color: var(--primary-red);
     width: 16px;
     height: 16px;
 }
 
 .sidebar button:disabled {
-    background-color: #7f8c8d;
+    background-color: var(--disabled-gray);
     cursor: not-allowed;
-}
-
-/* 게임 오버 오버레이 */
-.game-over-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.75);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2em;
-    font-weight: bold;
 }
 
 /* 보너스 텍스트 애니메이션 */
@@ -245,9 +252,9 @@ body.mobile #touch-controls {
     width: 60px;
     height: 60px;
     font-size: 1.8em;
-    border: 2px solid #ecf0f1;
-    background-color: rgba(44, 62, 80, 0.7);
-    color: #ecf0f1;
+    border: 2px solid var(--text-light);
+    background-color: rgba(44, 62, 80, 0.7); /* var(--bg-dark-blue) with alpha */
+    color: var(--text-light);
     border-radius: 15px;
     -webkit-tap-highlight-color: transparent;
     display: flex;
@@ -256,7 +263,7 @@ body.mobile #touch-controls {
 }
 
 .touch-group button:active {
-    background-color: rgba(231, 76, 60, 0.7);
+    background-color: rgba(231, 76, 60, 0.7); /* var(--primary-red) with alpha */
 }
 
 .touch-actions {
