@@ -13,28 +13,49 @@
             <canvas id="game-board" width="300" height="600"></canvas>
         </div>
         <div class="sidebar">
-            <div>
-                <h2>SCORE</h2>
-                <p id="score">0</p>
+            <!-- 마라톤 모드 정보 -->
+            <div id="marathon-info">
+                <div>
+                    <h2>SCORE</h2>
+                    <p id="score">0</p>
+                </div>
+                 <div>
+                    <h2>HIGH SCORE</h2>
+                    <p id="high-score">0</p>
+                </div>
+                <div>
+                    <h2>LEVEL</h2>
+                    <p id="level">1</p>
+                </div>
             </div>
-             <div>
-                <h2>HIGH SCORE</h2>
-                <p id="high-score">0</p>
+            <!-- 스프린트 모드 정보 (초기에는 숨김) -->
+            <div id="sprint-info" style="display: none;">
+                <div>
+                    <h2>LINES</h2>
+                    <p id="lines-left">40</p>
+                </div>
+                <div>
+                    <h2>TIME</h2>
+                    <p id="timer">0.000</p>
+                </div>
+                <div>
+                    <h2>BEST TIME</h2>
+                    <p id="best-time">--:--.---</p>
+                </div>
             </div>
+
             <div>
                 <h2>NEXT</h2>
                 <canvas id="next-piece" width="120" height="120"></canvas>
             </div>
+
             <div>
                 <h2>HOLD</h2>
                 <canvas id="hold-piece" width="120" height="120"></canvas>
             </div>
-            <div>
-                <h2>LEVEL</h2>
-                <p id="level">1</p>
-            </div>
+
             <div id="difficulty-selector">
-                <h2>난이도</h2>
+                <h2>Difficulty</h2>
                 <div class="options">
                     <div class="option-item">
                         <input type="radio" id="diff-easy" name="difficulty" value="easy">
@@ -50,6 +71,21 @@
                     </div>
                 </div>
             </div>
+
+            <div id="mode-selector">
+                <h2>Game Mode</h2>
+                <div class="options">
+                    <div class="option-item">
+                        <input type="radio" id="mode-marathon" name="game-mode" value="MARATHON" checked>
+                        <label for="mode-marathon">Marathon</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="mode-sprint" name="game-mode" value="SPRINT">
+                        <label for="mode-sprint">Sprint (40L)</label>
+                    </div>
+                </div>
+            </div>
+
             <div class="button-group">
                 <button id="start-btn">시작하기</button>
                 <button id="pause-btn" disabled>일시정지</button>

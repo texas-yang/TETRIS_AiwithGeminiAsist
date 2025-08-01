@@ -7,6 +7,9 @@ const holdCanvas = document.getElementById('hold-piece');
 const holdCtx = holdCanvas.getContext('2d');
 const scoreElem = document.getElementById('score');
 const levelElem = document.getElementById('level');
+const linesLeftElem = document.getElementById('lines-left');
+const timerElem = document.getElementById('timer');
+const bestTimeElem = document.getElementById('best-time');
 const highScoreElem = document.getElementById('high-score');
 const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
@@ -103,6 +106,10 @@ let currentDifficulty; // 현재 난이도 설정
 let currentColors; // 현재 활성화된 색상 테마
 let isGameOver; // 게임 오버 상태를 추적하는 변수
 let isSoundOn; // 사운드 ON/OFF 상태
+let gameMode; // 'MARATHON' 또는 'SPRINT'
+let sprintTimer; // 스프린트 모드 타이머 (ms)
+let sprintTimerId; // 스프린트 타이머의 setInterval ID
+let bestTime; // 스프린트 모드 최고 기록
 
 const playerInitialState = {
     pos: { x: 0, y: 0 },
@@ -454,6 +461,11 @@ function animateAndClearLines(rows, isTSpin) {
             updateScoreAndLevel();
             dropCounter = 0;
             isAnimating = false;
+
+            // 스프린트 모드 완료 체크
+            if (gameMode === 'SPRINT' && lines >= 40) {
+                handleSprintClear();
+            }
         }
     }, flashInterval);
 }
@@ -582,6 +594,7 @@ function playerHold() {
  */
 function handleGameOver() {
     cancelAnimationFrame(animationFrameId);
+    if (sprintTimerId) clearInterval(sprintTimerId);
     animationFrameId = null; // 게임 루프가 중지되었음을 명확히 함
     playSound('gameover');
     isGameOver = true; // 게임 오버 상태를 true로 설정
@@ -594,34 +607,93 @@ function handleGameOver() {
     ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
 
-    updateHighScore();
+    if (gameMode === 'MARATHON') {
+        updateHighScore();
+    }
     startBtn.disabled = false;
     pauseBtn.disabled = true;
     restartBtn.disabled = true;
     startBtn.textContent = '다시 시작';
     document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = false);
+    document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = false);
+}
+
+/**
+ * 스프린트 모드 완료 시 처리
+ */
+function handleSprintClear() {
+    cancelAnimationFrame(animationFrameId);
+    clearInterval(sprintTimerId);
+    animationFrameId = null;
+    isGameOver = true; // 게임 종료 상태로 설정
+
+    const finalTime = formatTime(sprintTimer);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'gold';
+    ctx.font = `${BLOCK_SIZE * 1.2}px "Segoe UI"`;
+    ctx.textAlign = 'center';
+    ctx.fillText('CLEAR!', canvas.width / 2, canvas.height / 2 - 20);
+    ctx.font = `${BLOCK_SIZE * 0.8}px "Segoe UI"`;
+    ctx.fillText(`Time: ${finalTime}`, canvas.width / 2, canvas.height / 2 + 20);
+
+    updateBestTime();
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    restartBtn.disabled = true;
+    startBtn.textContent = '다시 시작';
+    document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = false);
+    document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = false);
+}
+
+/**
+ * 선택된 게임 모드에 따라 사이드바의 UI 요소를 보이거나 숨깁니다.
+ * 이 함수는 게임 시작 전과 후에 모두 호출될 수 있습니다.
+ */
+function updateUIVisibility() {
+    const marathonInfo = document.getElementById('marathon-info');
+    const sprintInfo = document.getElementById('sprint-info');
+    const difficultySelector = document.getElementById('difficulty-selector');
+
+    const selectedMode = document.querySelector('input[name="game-mode"]:checked').value;
+    const isMarathon = selectedMode === 'MARATHON';
+
+    marathonInfo.style.display = isMarathon ? 'flex' : 'none';
+    sprintInfo.style.display = isMarathon ? 'none' : 'flex';
+    difficultySelector.style.display = isMarathon ? 'block' : 'none';
+
+    // 게임 시작 전 UI 초기화
+    if (!isMarathon) {
+        linesLeftElem.textContent = '40';
+        timerElem.textContent = '0.000';
+    }
 }
 
 /** 점수, 레벨, UI를 업데이트합니다. */
 function updateScoreAndLevel() {
-    const oldLevel = level;
-    level = Math.floor(lines / 10) + 1;
+    if (gameMode === 'MARATHON') {
+        const oldLevel = level;
+        level = Math.floor(lines / 10) + 1;
 
-    // 난이도와 레벨에 따라 블록 하강 속도를 조절합니다.
-    dropInterval = Math.max(
-        MIN_DROP_INTERVAL,
-        currentDifficulty.initialInterval - (level - 1) * currentDifficulty.speedUpPerLevel
-    );
+        // 난이도와 레벨에 따라 블록 하강 속도를 조절합니다.
+        dropInterval = Math.max(
+            MIN_DROP_INTERVAL,
+            currentDifficulty.initialInterval - (level - 1) * currentDifficulty.speedUpPerLevel
+        );
 
-    // 레벨이 올랐을 경우에만 테마를 변경합니다.
-    if (level > oldLevel) {
-        // (level - 1)을 사용하여 레벨 1은 첫 번째 테마, 레벨 2는 두 번째 테마를 사용하도록 합니다.
-        currentColors = COLOR_THEMES[(level - 1) % COLOR_THEMES.length];
+        // 레벨이 올랐을 경우에만 테마를 변경합니다.
+        if (level > oldLevel) {
+            // (level - 1)을 사용하여 레벨 1은 첫 번째 테마, 레벨 2는 두 번째 테마를 사용하도록 합니다.
+            currentColors = COLOR_THEMES[(level - 1) % COLOR_THEMES.length];
+        }
+
+        scoreElem.textContent = score;
+        levelElem.textContent = level;
+        updateHighScore();
+    } else if (gameMode === 'SPRINT') {
+        const linesRemaining = Math.max(0, 40 - lines);
+        linesLeftElem.textContent = linesRemaining;
     }
-
-    scoreElem.textContent = score;
-    levelElem.textContent = level;
-    updateHighScore();
 }
 
 /** 최고 점수를 업데이트하고 localStorage에 저장합니다. */
@@ -639,15 +711,40 @@ function loadHighScore() {
     highScoreElem.textContent = highScore;
 }
 
+/** 스프린트 최고 기록을 업데이트하고 localStorage에 저장합니다. */
+function updateBestTime() {
+    if (sprintTimer < bestTime || bestTime === 0) {
+        bestTime = sprintTimer;
+        localStorage.setItem('tetrisBestTime', bestTime);
+    }
+    bestTimeElem.textContent = formatTime(bestTime);
+}
+
+/** localStorage에서 스프린트 최고 기록을 불러옵니다. */
+function loadBestTime() {
+    bestTime = parseFloat(localStorage.getItem('tetrisBestTime')) || 0;
+    bestTimeElem.textContent = bestTime > 0 ? formatTime(bestTime) : '--:--.---';
+}
+
+/** 시간을 mm:ss.SSS 형식으로 변환합니다. */
+function formatTime(ms) {
+    if (ms <= 0) return '0.000';
+    const totalSeconds = ms / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const milliseconds = Math.floor((totalSeconds * 1000) % 1000);
+
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+}
+
 /**
  * 게임을 시작하는 함수
  */
 function startGame() {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
-    // 선택된 난이도를 가져와 설정합니다.
-    const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
-    currentDifficulty = DIFFICULTY_SETTINGS[selectedDifficulty];
+    // 선택된 게임 모드를 가져옵니다.
+    gameMode = document.querySelector('input[name="game-mode"]:checked').value;
 
     // 게임 상태 초기화
     board = createBoard();
@@ -664,10 +761,28 @@ function startGame() {
     comboCounter = 0;
     dropCounter = 0;
     lastTime = 0;
+    sprintTimer = 0;
+    if (sprintTimerId) clearInterval(sprintTimerId);
     isGameOver = false; // 게임 시작 시 isGameOver를 false로 초기화
 
     // UI 초기화
     currentColors = COLOR_THEMES[0]; // 게임 시작 시 첫 번째 테마로 설정
+
+    // 모드에 따라 UI 및 게임 설정 조정
+    if (gameMode === 'MARATHON') {
+        const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
+        currentDifficulty = DIFFICULTY_SETTINGS[selectedDifficulty];
+        dropInterval = currentDifficulty.initialInterval;
+    } else if (gameMode === 'SPRINT') {
+        dropInterval = 800; // 스프린트 모드는 고정 속도
+        sprintTimerId = setInterval(() => {
+            if (!isPaused && !isGameOver) {
+                sprintTimer += 10; // 10ms 마다 타이머 업데이트
+                timerElem.textContent = formatTime(sprintTimer);
+            }
+        }, 10);
+    }
+    updateUIVisibility();
     updateScoreAndLevel();
     drawHoldPiece(); // 홀드 칸 비우기
 
@@ -683,6 +798,7 @@ function startGame() {
     restartBtn.disabled = false;
     pauseBtn.textContent = '일시정지';
     document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = true);
+    document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = true);
 }
 
 /** 다음 블록을 미리 보여주는 함수 */
@@ -985,8 +1101,17 @@ function init() {
     // 저장된 값이 없으면 true(ON)를 기본값으로, 있으면 해당 값을 boolean으로 변환합니다.
     isSoundOn = savedSoundSetting === null ? true : (savedSoundSetting === 'true');
     updateSoundButton();
+    
+    // 모드 선택 라디오 버튼에 이벤트 리스너 추가
+    document.querySelectorAll('input[name="game-mode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            // 라디오 버튼이 변경될 때마다 UI를 즉시 업데이트합니다.
+            updateUIVisibility();
+        });
+    });
 
     loadHighScore();
+    loadBestTime();
 
     // 이벤트 리스너 등록
     startBtn.addEventListener('click', startGame);

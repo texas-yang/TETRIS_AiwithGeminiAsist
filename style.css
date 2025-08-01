@@ -67,6 +67,13 @@ h1 {
     border-radius: 5px;
 }
 
+/* 모드별 정보 표시 컨테이너 */
+#marathon-info, #sprint-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
 .sidebar div {
     /* 개별 정보 섹션의 배경, 패딩, 테두리를 제거하고 부모인 .sidebar에서 관리합니다. */
     background-color: transparent;
@@ -144,31 +151,30 @@ h1 {
 }
 
 /* 난이도 선택 스타일 */
-#difficulty-selector {
+#difficulty-selector, #mode-selector {
     /* 부모인 .sidebar에서 스타일을 관리하므로 개별 스타일을 제거하여 일관성을 유지합니다. */
     padding: 0;
 }
 
-#difficulty-selector .options {
+#difficulty-selector .options, #mode-selector .options {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
 }
 
-/* 난이도 옵션 아이템 (라디오 버튼 + 라벨)을 한 줄로 묶기 위한 스타일 */
 .option-item {
     display: flex;
     align-items: center;
     gap: 5px;
 }
 
-#difficulty-selector label {
+#difficulty-selector label, #mode-selector label {
     cursor: pointer;
     font-size: 1em;
 }
 
-#difficulty-selector input[type="radio"] {
+#difficulty-selector input[type="radio"], #mode-selector input[type="radio"] {
     cursor: pointer;
     accent-color: var(--primary-red);
     width: 16px;
