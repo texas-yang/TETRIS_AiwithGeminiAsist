@@ -96,6 +96,8 @@ let dropCounter;
 let dropInterval;
 let lastTime;
 let isBackToBack; // Back-to-Back 보너스 상태 추적
+let lastMoveWasRotate; // T-Spin 감지를 위해 마지막 행동이 회전이었는지 추적
+let comboCounter; // 콤보 카운터
 let animationFrameId;
 let currentDifficulty; // 현재 난이도 설정
 let currentColors; // 현재 활성화된 색상 테마
@@ -210,6 +212,7 @@ function playerDrop() {
         lockPieceAndReset(); // 블록 고정 및 다음 블록 준비
     }
     dropCounter = 0;
+    lastMoveWasRotate = false;
 }
 
 /**
@@ -219,6 +222,7 @@ function playerDrop() {
 function playerMove(dir) {
     if (isAnimating) return;
     player.pos.x += dir;
+    lastMoveWasRotate = false;
     playSound('move');
     if (collide(board, player)) {
         player.pos.x -= dir;
@@ -282,6 +286,7 @@ function playerHardDrop() {
     }
     player.pos.y--;
     lockPieceAndReset();
+    lastMoveWasRotate = false;
 }
 
 /**
@@ -289,6 +294,13 @@ function playerHardDrop() {
  */
 function lockPieceAndReset() {
     // "Block Out" 게임 오버 조건을 확인합니다.
+    let isTSpin = false;
+    // T-Spin은 T 블록이 회전하여 고정될 때만 인정됩니다.
+    if (player.type === 'T' && lastMoveWasRotate) {
+        isTSpin = checkForTSpin(board, player);
+    }
+    lastMoveWasRotate = false; // 다음 블록을 위해 초기화
+
     // 이 검사는 merge() 전에 수행되어야 합니다.
     // 조각이 보드 상단(보이는 영역 밖)에 고정되면 게임 오버입니다.
     for (let y = 0; y < player.matrix.length; y++) {
@@ -306,13 +318,13 @@ function lockPieceAndReset() {
     playSound('lock'); // 블록이 고정되는 시점에 항상 사운드를 재생합니다.
 
     merge(); // 1. 현재 조각을 보드에 먼저 합칩니다.
-    sweepBoard();
+    sweepBoard(isTSpin);
 }
 
 /**
  * 완성된 라인을 찾아 애니메이션을 실행하거나, 다음 블록을 생성합니다.
  */
-function sweepBoard() {
+function sweepBoard(isTSpin = false) {
     // 2. 보드에 합쳐진 상태에서 완성된 줄이 있는지 찾습니다.
     let rowsToClear = [];
     outer: for (let y = board.length - 1; y >= 0; --y) {
@@ -326,8 +338,14 @@ function sweepBoard() {
 
     // 3. 지울 줄이 있으면 애니메이션을, 없으면 다음 게임 단계를 진행합니다.
     if (rowsToClear.length > 0) {
-        animateAndClearLines(rowsToClear);
+        comboCounter++; // 콤보 카운트 증가
+        animateAndClearLines(rowsToClear, isTSpin);
     } else {
+        comboCounter = 0; // 라인 클리어 실패 시 콤보 초기화
+        if (isTSpin) { // 라인 클리어 없는 T-Spin (Mini T-Spin)
+            score += 100 * level; // T-Spin Mini 점수
+            showFloatingText('T-Spin!');
+        }
         playerReset();
         updateScoreAndLevel();
         dropCounter = 0;
@@ -338,7 +356,7 @@ function sweepBoard() {
  * 라인 제거 애니메이션을 실행하고, 완료 후 라인을 제거합니다.
  * @param {Array<number>} rows - 제거할 라인의 인덱스 배열
  */
-function animateAndClearLines(rows) {
+function animateAndClearLines(rows, isTSpin) {
     isAnimating = true;
     playSound('clear');
     let flashCount = 0;
@@ -370,22 +388,44 @@ function animateAndClearLines(rows) {
             const clearedLines = rows.length;
             const lineScores = [0, 100, 300, 500, 800]; // 기본 점수
             let baseScore = lineScores[clearedLines] * level;
+            let isDifficultClear = false; // 테트리스 또는 T-Spin 여부
             let bonusText = '';
 
-            if (clearedLines > 0) {
-                if (clearedLines === 4) { // Tetris
-                    if (isBackToBack) {
-                        baseScore *= 1.5; // Back-to-Back 보너스 (1.5배)
-                        bonusText = 'Back-to-Back<br>TETRIS!';
-                    } else {
-                        bonusText = 'TETRIS!';
-                    }
-                    isBackToBack = true; // 다음 어려운 클리어를 위해 B2B 상태 유지
+            if (isTSpin) {
+                isDifficultClear = true;
+                const tSpinScores = [100, 800, 1200, 1600]; // 0, 1, 2, 3 라인
+                baseScore = tSpinScores[clearedLines] * level;
+                bonusText = 'T-Spin';
+                if (clearedLines === 2) bonusText += ' Double!';
+                if (clearedLines === 3) bonusText += ' Triple!';
+            } else if (clearedLines === 4) { // Tetris
+                isDifficultClear = true;
+                bonusText = 'TETRIS!';
+            } else {
+                if (clearedLines === 2) bonusText = 'Double!';
+                if (clearedLines === 3) bonusText = 'Triple!';
+            }
+
+            // Back-to-Back 보너스
+            if (isDifficultClear) {
+                if (isBackToBack) {
+                    baseScore *= 1.5;
+                    bonusText = 'Back-to-Back<br>' + bonusText;
+                }
+                isBackToBack = true;
+            } else if (clearedLines > 0) {
+                isBackToBack = false;
+            }
+
+            // 콤보 보너스
+            if (comboCounter > 1) {
+                const comboBonus = 50 * (comboCounter - 1) * level;
+                baseScore += comboBonus;
+                // 콤보 텍스트를 기존 보너스 텍스트에 추가합니다.
+                if (bonusText) {
+                    bonusText += `<br>Combo ${comboCounter - 1}x`;
                 } else {
-                    isBackToBack = false; // 일반 클리어 시 B2B 상태 해제
-                    if (clearedLines === 2) bonusText = 'Double!';
-                    if (clearedLines === 3) bonusText = 'Triple!';
-                    if (clearedLines === 4) bonusText = 'Quadruple!';
+                    bonusText = `Combo ${comboCounter - 1}x`;
                 }
             }
 
@@ -441,6 +481,7 @@ function playerRotate(dir) {
 
         if (!collide(board, player)) {
             // 충돌하지 않는 위치를 찾았으면 회전 성공
+            lastMoveWasRotate = true;
             return;
         }
 
@@ -463,6 +504,35 @@ function rotateMatrix(matrix, dir) {
     }
     // 반시계 방향 회전: 전치 후 행의 순서를 뒤집습니다.
     matrix.reverse();
+}
+
+/**
+ * T-Spin 조건을 확인하는 헬퍼 함수
+ * @param {Array<Array<number>>} board - 게임 보드
+ * @param {object} player - 플레이어 객체
+ * @returns {boolean} T-Spin 조건 충족 시 true
+ */
+function checkForTSpin(board, player) {
+    // T 블록의 3x3 바운딩 박스의 네 모서리를 확인합니다.
+    // T 블록의 모양(PIECES['T'])에서 실제 블록이 있는 중심점을 기준으로 합니다.
+    const { pos, matrix } = player;
+    const corners = [
+        { y: pos.y,     x: pos.x },     // Top-left
+        { y: pos.y,     x: pos.x + 2 }, // Top-right
+        { y: pos.y + 2, x: pos.x },     // Bottom-left
+        { y: pos.y + 2, x: pos.x + 2 }  // Bottom-right
+    ];
+
+    let occupiedCorners = 0;
+    for (const corner of corners) {
+        // 보드 밖이거나 (벽)
+        if (corner.x < 0 || corner.x >= COLS || corner.y >= ROWS ||
+            // 다른 블록으로 채워져 있는 경우
+            (board[corner.y] && board[corner.y][corner.x] !== 0)) {
+            occupiedCorners++;
+        }
+    }
+    return occupiedCorners >= 3;
 }
 
 /**
@@ -577,6 +647,8 @@ function startGame() {
     heldPieceType = null;
     isBackToBack = false;
     canHold = true;
+    lastMoveWasRotate = false;
+    comboCounter = 0;
     dropCounter = 0;
     lastTime = 0;
     isGameOver = false; // 게임 시작 시 isGameOver를 false로 초기화
@@ -828,6 +900,7 @@ document.addEventListener('keydown', event => {
             break;
         case 'ArrowDown':
             playerDrop();
+            lastMoveWasRotate = false;
             break;
         case 'ArrowUp':
             playerRotate(1);
