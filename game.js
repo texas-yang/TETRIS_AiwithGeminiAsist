@@ -25,6 +25,9 @@ const DIFFICULTY_SETTINGS = {
     hard:   { initialInterval: 600,  speedUpPerLevel: 100 }
 };
 const MIN_DROP_INTERVAL = 50; // ms, 블록이 떨어지는 최소 간격
+const DAS_DELAY = 160; // ms, 자동 이동 시작 전 딜레이
+const ARR_INTERVAL = 50; // ms, 자동 반복 이동 간격
+const LOCK_DELAY = 500; // ms, 블록이 바닥에 닿은 후 고정되기까지의 시간
 
 // 블록 색상 테마 정의
 const COLOR_THEMES = [
@@ -103,6 +106,11 @@ let currentDifficulty; // 현재 난이도 설정
 let currentColors; // 현재 활성화된 색상 테마
 let isGameOver; // 게임 오버 상태를 추적하는 변수
 let isSoundOn; // 사운드 ON/OFF 상태
+let dasTimer; // DAS 타이머 ID
+let dasDirection; // DAS 방향 (-1, 1, 0)
+let arrIntervalId; // ARR 인터벌 ID
+let lockDelayTimer; // 락 딜레이 타이머
+let isTouchingGround; // 블록이 바닥에 닿았는지 여부
 
 const playerInitialState = {
     pos: { x: 0, y: 0 },
@@ -210,6 +218,10 @@ function playerDrop() {
     if (collide(board, player)) {
         player.pos.y--; // 충돌했으므로 다시 올립니다.
         lockPieceAndReset(); // 블록 고정 및 다음 블록 준비
+    } else {
+        // 공중에 있을 때는 락 딜레이 상태 해제
+        isTouchingGround = false;
+        stopDas(); // 아래로 내려가는 동안에는 좌우 이동 입력을 초기화
     }
     dropCounter = 0;
     lastMoveWasRotate = false;
@@ -222,10 +234,14 @@ function playerDrop() {
 function playerMove(dir) {
     if (isAnimating) return;
     player.pos.x += dir;
-    lastMoveWasRotate = false;
-    playSound('move');
     if (collide(board, player)) {
         player.pos.x -= dir;
+    } else {
+        playSound('move');
+        lastMoveWasRotate = false;
+        if (isTouchingGround) { // 바닥에 닿은 상태에서 움직임에 성공하면
+            lockDelayTimer = LOCK_DELAY; // 락 딜레이 초기화
+        }
     }
 }
 
@@ -285,6 +301,7 @@ function playerHardDrop() {
         player.pos.y++;
     }
     player.pos.y--;
+    // 하드드롭은 락 딜레이 없이 즉시 고정
     lockPieceAndReset();
     lastMoveWasRotate = false;
 }
@@ -293,6 +310,9 @@ function playerHardDrop() {
  * 블록을 고정하고, 라인을 지우고, 점수를 업데이트하고, 새 블록을 생성합니다.
  */
 function lockPieceAndReset() {
+    isTouchingGround = false; // 블록이 고정되었으므로 상태 초기화
+    stopDas(); // 블록 고정 시 DAS/ARR 중지
+
     // "Block Out" 게임 오버 조건을 확인합니다.
     let isTSpin = false;
     // T-Spin은 T 블록이 회전하여 고정될 때만 인정됩니다.
@@ -470,7 +490,6 @@ function playerRotate(dir) {
     const originalPos = JSON.parse(JSON.stringify(player.pos));
 
     rotateMatrix(player.matrix, dir);
-    playSound('rotate');
 
     // 'Wall Kick' 테스트를 위한 오프셋 목록입니다.
     // 블록을 회전시켰을 때 다른 블록이나 벽에 겹치면, 이 위치들로 살짝 밀어보며 들어갈 수 있는지 확인합니다.
@@ -495,6 +514,10 @@ function playerRotate(dir) {
         if (!collide(board, player)) {
             // 충돌하지 않는 위치를 찾았으면 회전 성공
             lastMoveWasRotate = true;
+            playSound('rotate');
+            if (isTouchingGround) { // 바닥에 닿은 상태에서 회전에 성공하면
+                lockDelayTimer = LOCK_DELAY; // 락 딜레이 초기화
+            }
             return;
         }
 
@@ -553,6 +576,7 @@ function checkForTSpin(board, player) {
  */
 function playerHold() {
     if (!canHold || isAnimating) return;
+    isTouchingGround = false;
     canHold = false;
 
     if (heldPieceType) {
@@ -664,6 +688,8 @@ function startGame() {
     comboCounter = 0;
     dropCounter = 0;
     lastTime = 0;
+    dasDirection = 0;
+    isTouchingGround = false;
     isGameOver = false; // 게임 시작 시 isGameOver를 false로 초기화
 
     // UI 초기화
@@ -900,6 +926,21 @@ function setupTouchControls() {
     addSingleTouch(touchHardDrop, playerHardDrop);
     addSingleTouch(touchHold, playerHold);
 }
+
+/**
+ * DAS/ARR 타이머를 모두 중지합니다.
+ */
+function stopDas() {
+    if (dasTimer) {
+        clearTimeout(dasTimer);
+        dasTimer = null;
+    }
+    if (arrIntervalId) {
+        clearInterval(arrIntervalId);
+        arrIntervalId = null;
+    }
+    dasDirection = 0;
+}
 // --- 게임 루프 및 이벤트 핸들러 ---
 
 /**
@@ -914,6 +955,16 @@ function update(time = 0) {
 
     const deltaTime = time - lastTime;
     lastTime = time;
+
+    // 락 딜레이 처리
+    if (isTouchingGround) {
+        lockDelayTimer -= deltaTime;
+        if (lockDelayTimer <= 0) {
+            lockPieceAndReset();
+            // lockPieceAndReset 이후 게임오버가 될 수 있으므로, 바로 리턴
+            if (isGameOver) return;
+        }
+    }
 
     dropCounter += deltaTime;
     if (dropCounter > dropInterval) {
@@ -931,39 +982,49 @@ function update(time = 0) {
 }
 
 // 키보드 입력 처리
-document.addEventListener('keydown', event => {
+function handleKeyDown(event) {
     // 게임이 시작되지 않았으면 아무것도 하지 않음
     if (!animationFrameId && event.key !== 'Enter') {
         return;
     }
 
     // 'P' 키로 일시정지/재개
-    if (event.key.toLowerCase() === 'p') {
+    if (event.key.toLowerCase() === 'p' && !event.repeat) {
         togglePause();
         return;
     }
 
     // 일시정지 상태에서는 다른 키 입력 무시
-    if (isPaused) return;
+    if (isPaused || isAnimating) return;
 
     // 페이지 스크롤을 유발할 수 있는 키들의 기본 동작을 막습니다.
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
         event.preventDefault();
     }
 
+    if (event.repeat) return; // 키 반복 입력은 무시 (DAS/ARR로 처리)
+
     switch (event.key) {
         case 'ArrowLeft':
-            playerMove(-1);
-            break;
         case 'ArrowRight':
-            playerMove(1);
+            const direction = (event.key === 'ArrowLeft') ? -1 : 1;
+            playerMove(direction); // 즉시 한 칸 이동
+            stopDas(); // 기존 타이머 정리
+            dasDirection = direction;
+            // DAS 시작
+            dasTimer = setTimeout(() => {
+                // ARR 시작
+                arrIntervalId = setInterval(() => {
+                    playerMove(dasDirection);
+                }, ARR_INTERVAL);
+            }, DAS_DELAY);
             break;
         case 'ArrowDown':
             playerDrop();
             lastMoveWasRotate = false;
             break;
         case 'ArrowUp':
-            playerRotate(1);
+            playerRotate(1); // 시계방향 회전
             break;
         case ' ': // 스페이스바
             playerHardDrop();
@@ -973,8 +1034,15 @@ document.addEventListener('keydown', event => {
             playerHold();
             break;
     }
-});
+}
 
+function handleKeyUp(event) {
+    // 뗀 키가 현재 DAS 방향과 같을 때만 타이머를 중지합니다.
+    const direction = (event.key === 'ArrowLeft') ? -1 : (event.key === 'ArrowRight') ? 1 : 0;
+    if (direction !== 0 && direction === dasDirection) {
+        stopDas();
+    }
+}
 
 /**
  * 게임 초기화
@@ -989,6 +1057,8 @@ function init() {
     loadHighScore();
 
     // 이벤트 리스너 등록
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', startGame); // '처음으로' 버튼 클릭 시 게임을 새로 시작
