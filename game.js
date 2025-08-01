@@ -15,6 +15,10 @@ const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const restartBtn = document.getElementById('restart-btn');
 const soundBtn = document.getElementById('sound-btn');
+const modal = document.getElementById('mode-description-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalDescription = document.getElementById('modal-description');
+const closeButton = document.querySelector('.close-button');
 
 // 게임 상수 정의
 const COLS = 10; // 가로 칸 수
@@ -1019,6 +1023,30 @@ function setupTouchControls() {
 // --- 게임 루프 및 이벤트 핸들러 ---
 
 /**
+ * 선택된 게임 모드에 대한 설명을 팝업으로 보여줍니다.
+ * @param {string} mode - 'MARATHON' 또는 'SPRINT'
+ */
+function showModeDescription(mode) {
+    const modeDescriptions = {
+        MARATHON: {
+            title: '마라톤 모드 (Marathon)',
+            description: '클래식 테트리스 모드입니다. 라인을 클리어하여 점수를 획득하고, 레벨이 오를수록 블록이 떨어지는 속도가 빨라집니다. 최대한 높은 점수를 기록하는 것이 목표입니다.'
+        },
+        SPRINT: {
+            title: '스프린트 모드 (Sprint)',
+            description: '타임 어택 모드입니다. 40줄의 라인을 최대한 빠른 시간 안에 지우는 것이 목표입니다. 당신의 속도와 효율성을 시험해보세요!'
+        }
+    };
+
+    const content = modeDescriptions[mode];
+    if (content) {
+        modalTitle.textContent = content.title;
+        modalDescription.textContent = content.description;
+        modal.style.display = 'block';
+    }
+}
+
+/**
  * 게임 상태를 업데이트하고 화면을 다시 그리는 메인 루프
  * @param {number} time - requestAnimationFrame이 제공하는 타임스탬프
  */
@@ -1104,10 +1132,24 @@ function init() {
     
     // 모드 선택 라디오 버튼에 이벤트 리스너 추가
     document.querySelectorAll('input[name="game-mode"]').forEach(radio => {
-        radio.addEventListener('change', () => {
+        radio.addEventListener('change', (event) => {
             // 라디오 버튼이 변경될 때마다 UI를 즉시 업데이트합니다.
             updateUIVisibility();
+            // 그리고 모드 설명을 보여줍니다.
+            showModeDescription(event.target.value);
         });
+    });
+
+    // 모달 닫기 이벤트 리스너
+    closeButton.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    // 모달 바깥 영역 클릭 시 닫기
+    window.addEventListener('click', (event) => {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
     });
 
     loadHighScore();

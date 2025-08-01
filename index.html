@@ -102,22 +102,32 @@
     <audio id="sound-clear" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/clear.mp3" preload="auto"></audio>
     <audio id="sound-gameover" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/gameover.mp3" preload="auto"></audio>
 
+    <!-- Touch Controls (hidden by default) -->
+    <div id="touch-controls">
+        <div class="touch-group touch-dpad">
+            <div class="row">
+                <button id="touch-left">⇦</button>
+                <button id="touch-right">⇨</button>
+            </div>
+            <button id="touch-down">⇩</button>
+        </div>
+        <div class="touch-group touch-actions">
+            <button id="touch-hold">H</button>
+            <button id="touch-rotate">↻</button>
+            <button id="touch-hard-drop">⟱</button>
+        </div>
+    </div>
+
+    <!-- 모드 설명 모달 -->
+    <div id="mode-description-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modal-title"></h2>
+            <p id="modal-description"></p>
+        </div>
+    </div>
+
     <script src="game.js"></script>
 </body>
 
-<!-- Touch Controls (hidden by default) -->
-<div id="touch-controls">
-    <div class="touch-group touch-dpad">
-        <div class="row">
-            <button id="touch-left">⇦</button>
-            <button id="touch-right">⇨</button>
-        </div>
-        <button id="touch-down">⇩</button>
-    </div>
-    <div class="touch-group touch-actions">
-        <button id="touch-hold">H</button>
-        <button id="touch-rotate">↻</button>
-        <button id="touch-hard-drop">⟱</button>
-    </div>
-</div>
 </html>
