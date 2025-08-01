@@ -205,6 +205,29 @@ h1 {
     100% { opacity: 0; transform: translate(-50%, -80px); }
 }
 
+/* 폭발 애니메이션 파티클 */
+.explosion-particle {
+    position: absolute;
+    /* 파티클의 크기는 JS에서 동적으로 설정됩니다. */
+    background-color: #f1c40f; /* 기본 색상 */
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 101; /* 플로팅 텍스트보다 위에 보이도록 설정 */
+    animation: explode 0.7s ease-out forwards;
+}
+
+@keyframes explode {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        /* transform 값은 JS에서 각 파티클마다 동적으로 설정됩니다. */
+        transform: var(--explode-transform);
+        opacity: 0;
+    }
+}
+
 /* 반응형 디자인: 모바일 */
 body.mobile {
     justify-content: flex-start; /* 상단 정렬 */

@@ -357,8 +357,22 @@ function sweepBoard(isTSpin = false) {
  * @param {Array<number>} rows - 제거할 라인의 인덱스 배열
  */
 function animateAndClearLines(rows, isTSpin) {
+    const clearedLines = rows.length; // 점수 계산과 애니메이션 모두에 사용하므로 맨 위로 이동
+
     isAnimating = true;
     playSound('clear');
+
+    // --- 폭발 애니메이션 추가 ---
+    if (clearedLines > 0) {
+        // 지워진 라인들의 중앙 위치를 계산합니다.
+        // rows 배열은 내림차순으로 정렬되어 있으므로 rows[0]이 가장 아래쪽 라인입니다.
+        const midRow = (rows[0] + rows[rows.length - 1]) / 2;
+        const explosionY = (midRow + 0.5) * BLOCK_SIZE;
+        const explosionX = (COLS / 2) * BLOCK_SIZE;
+        createExplosion(explosionX, explosionY, clearedLines);
+    }
+    // --- 여기까지 ---
+
     let flashCount = 0;
     const maxFlashes = 4; // 짝수 번 깜빡임
     const flashInterval = 80; // ms
@@ -385,7 +399,6 @@ function animateAndClearLines(rows, isTSpin) {
             }
 
             // --- 보너스 점수 계산 로직 ---
-            const clearedLines = rows.length;
             const lineScores = [0, 100, 300, 500, 800]; // 기본 점수
             let baseScore = lineScores[clearedLines] * level;
             let isDifficultClear = false; // 테트리스 또는 T-Spin 여부
@@ -730,6 +743,53 @@ function showFloatingText(text) {
         wrapper.appendChild(textElem);
         textElem.addEventListener('animationend', () => {
             textElem.remove();
+        });
+    }
+}
+
+/**
+ * 라인 클리어 시 폭발 애니메이션을 생성합니다.
+ * @param {number} centerX - 폭발 중심의 X 좌표 (px)
+ * @param {number} centerY - 폭발 중심의 Y 좌표 (px)
+ * @param {number} lineCount - 지워진 라인 수
+ */
+function createExplosion(centerX, centerY, lineCount) {
+    const wrapper = document.querySelector('.game-board-wrapper');
+    if (!wrapper) return;
+
+    // 라인 수에 따라 파티클 개수, 폭발 반경, 크기를 다르게 설정
+    const particleCount = 30 * lineCount; // 1줄: 30, 2줄: 60, ... (더 풍성하게)
+    const maxDistance = 80 + (lineCount * 60);   // 폭발이 퍼지는 최대 반경 (2배 증가)
+    const particleSize = 4 + (lineCount * 2);    // 파티클의 크기 (2배 증가)
+
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('explosion-particle');
+
+        // 파티클의 초기 위치 및 크기 설정
+        particle.style.width = `${particleSize}px`;
+        particle.style.height = `${particleSize}px`;
+        particle.style.left = `${centerX}px`;
+        particle.style.top = `${centerY}px`;
+
+        // 각 파티클이 날아갈 랜덤한 방향과 거리 계산
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = Math.random() * maxDistance;
+        const finalX = Math.cos(angle) * distance;
+        const finalY = Math.sin(angle) * distance;
+
+        // CSS 변수를 사용하여 각 파티클의 최종 위치를 전달
+        particle.style.setProperty('--explode-transform', `translate(${finalX}px, ${finalY}px)`);
+        
+        // 파티클 색상을 다양하게 하여 더 화려하게 만듭니다.
+        const colors = ['#f1c40f', '#e67e22', '#e74c3c', '#ecf0f1'];
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+        wrapper.appendChild(particle);
+
+        // 애니메이션이 끝나면 DOM에서 제거하여 메모리를 관리합니다.
+        particle.addEventListener('animationend', () => {
+            particle.remove();
         });
     }
 }
