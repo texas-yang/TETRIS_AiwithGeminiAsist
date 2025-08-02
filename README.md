@@ -83,3 +83,5 @@ HTML, CSS, JavaScript로 구현된 클래식 테트리스 게임입니다. Gemin
 <img width="507" height="868" alt="image" src="https://github.com/user-attachments/assets/5ce74189-8078-41d2-b092-4070f96498a9" />
 
 > 아래 스크린샷은 UI 개편 후 모습.
+
+![개편 후 UI 스크린샷](https://user-images.githubusercontent.com/your-id/your-repo/path-to-image.png)
