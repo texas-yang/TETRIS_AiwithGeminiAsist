@@ -72,9 +72,11 @@ HTML, CSS, JavaScript로 구현된 클래식 테트리스 게임입니다. Gemin
 2.  폴더에서 `index.html` 파일을 웹 브라우저(Chrome, Firefox 등)로 열어주세요.
 
 ## 🖼️ 스크린샷
+
 (변경된 UI)
 <img width="626" height="764" alt="image" src="https://github.com/user-attachments/assets/c3ff3067-e9db-4eb9-afda-1786b0ea011a" />
 
-<img width="494" height="865" alt="image" src="https://github.com/user-attachments/assets/15d42ebd-53b1-49c0-9141-a6d9f93301e1" />
 
+(기존 UI)
+<img width="494" height="865" alt="image" src="https://github.com/user-attachments/assets/15d42ebd-53b1-49c0-9141-a6d9f93301e1" />
 <img width="507" height="868" alt="image" src="https://github.com/user-attachments/assets/5ce74189-8078-41d2-b092-4070f96498a9" />
