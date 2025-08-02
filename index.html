@@ -2,120 +2,93 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Tetris</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AI Tetris</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Gemini Tetris</h1>
     <div class="game-container">
-        <div class="game-board-wrapper">
-            <canvas id="game-board" width="300" height="600"></canvas>
-        </div>
-        <div class="sidebar">
+        <!-- 왼쪽 사이드바: 홀드, 점수, 레벨 정보 -->
+        <aside class="sidebar left-sidebar">
+            <div class="panel hold-panel">
+                <h3>HOLD</h3>
+                <canvas id="hold-piece" width="120" height="120"></canvas>
+            </div>
+
             <!-- 마라톤 모드 정보 -->
-            <div id="marathon-info">
-                <div>
-                    <h2>SCORE</h2>
+            <div id="marathon-info" class="info-group">
+                <div class="panel">
+                    <h3>SCORE</h3>
                     <p id="score">0</p>
                 </div>
-                 <div>
-                    <h2>HIGH SCORE</h2>
+                <div class="panel">
+                    <h3>HIGH SCORE</h3>
                     <p id="high-score">0</p>
                 </div>
-                <div>
-                    <h2>LEVEL</h2>
+                <div class="panel">
+                    <h3>LEVEL</h3>
                     <p id="level">1</p>
                 </div>
             </div>
-            <!-- 스프린트 모드 정보 (초기에는 숨김) -->
-            <div id="sprint-info" style="display: none;">
-                <div>
-                    <h2>LINES</h2>
+
+            <!-- 스프린트 모드 정보 -->
+            <div id="sprint-info" class="info-group" style="display: none;">
+                 <div class="panel">
+                    <h3>LINES LEFT</h3>
                     <p id="lines-left">40</p>
                 </div>
-                <div>
-                    <h2>TIME</h2>
+            </div>
+        </aside>
+
+        <!-- 중앙: 게임 보드 -->
+        <main class="game-board-wrapper">
+            <canvas id="game-board" width="300" height="600"></canvas>
+        </main>
+
+        <!-- 오른쪽 사이드바: 다음 블록, 시간, 컨트롤 -->
+        <aside class="sidebar right-sidebar">
+            <div class="panel next-panel">
+                <h3>NEXT</h3>
+                <canvas id="next-piece" width="120" height="120"></canvas>
+            </div>
+
+            <!-- 스프린트 모드 타이머 -->
+            <div id="sprint-timer-info" class="info-group">
+                <div class="panel">
+                    <h3>TIME</h3>
                     <p id="timer">0.000</p>
                 </div>
-                <div>
-                    <h2>BEST TIME</h2>
+                <div class="panel">
+                    <h3>BEST TIME</h3>
                     <p id="best-time">--:--.---</p>
                 </div>
             </div>
 
-            <div>
-                <h2>NEXT</h2>
-                <canvas id="next-piece" width="120" height="120"></canvas>
-            </div>
-
-            <div>
-                <h2>HOLD</h2>
-                <canvas id="hold-piece" width="120" height="120"></canvas>
-            </div>
-
-            <div id="difficulty-selector">
-                <h2>Difficulty</h2>
-                <div class="options">
-                    <div class="option-item">
-                        <input type="radio" id="diff-easy" name="difficulty" value="easy">
-                        <label for="diff-easy">쉬움</label>
-                    </div>
-                    <div class="option-item">
-                        <input type="radio" id="diff-normal" name="difficulty" value="normal" checked>
-                        <label for="diff-normal">보통</label>
-                    </div>
-                    <div class="option-item">
-                        <input type="radio" id="diff-hard" name="difficulty" value="hard">
-                        <label for="diff-hard">어려움</label>
-                    </div>
-                </div>
-            </div>
-
-            <div id="mode-selector">
-                <h2>Game Mode</h2>
-                <div class="options">
-                    <div class="option-item">
-                        <input type="radio" id="mode-marathon" name="game-mode" value="MARATHON" checked>
-                        <label for="mode-marathon">Marathon</label>
-                    </div>
-                    <div class="option-item">
-                        <input type="radio" id="mode-sprint" name="game-mode" value="SPRINT">
-                        <label for="mode-sprint">Sprint (40L)</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="button-group">
-                <button id="start-btn">시작하기</button>
+            <div class="panel controls-panel">
+                <button id="start-btn">게임 시작</button>
                 <button id="pause-btn" disabled>일시정지</button>
                 <button id="restart-btn" disabled>처음으로</button>
-                <button id="sound-btn">Sound ON</button>
             </div>
-        </div>
-    </div>
 
-    <!-- Sound Effects -->
-    <audio id="sound-move" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/move.mp3" preload="auto"></audio>
-    <audio id="sound-rotate" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/rotate.mp3" preload="auto"></audio>
-    <audio id="sound-lock" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/lock.mp3" preload="auto"></audio>
-    <audio id="sound-clear" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/clear.mp3" preload="auto"></audio>
-    <audio id="sound-gameover" src="https://cdn.jsdelivr.net/gh/webdev-jp/tetris-vanilla-js/sounds/gameover.mp3" preload="auto"></audio>
-
-    <!-- Touch Controls (hidden by default) -->
-    <div id="touch-controls">
-        <div class="touch-group touch-dpad">
-            <div class="row">
-                <button id="touch-left">⇦</button>
-                <button id="touch-right">⇨</button>
+            <div class="panel settings-panel">
+                 <div id="game-mode-selector">
+                    <h4>게임 모드</h4>
+                    <div class="radio-group">
+                        <label><input type="radio" name="game-mode" value="MARATHON" checked> 마라톤</label>
+                        <label><input type="radio" name="game-mode" value="SPRINT"> 스프린트</label>
+                    </div>
+                </div>
+                <div id="difficulty-selector">
+                    <h4>난이도</h4>
+                    <div class="radio-group">
+                        <label><input type="radio" name="difficulty" value="easy"> 쉬움</label>
+                        <label><input type="radio" name="difficulty" value="normal" checked> 보통</label>
+                        <label><input type="radio" name="difficulty" value="hard"> 어려움</label>
+                    </div>
+                </div>
+                <button id="sound-btn">소리 켜기</button>
             </div>
-            <button id="touch-down">⇩</button>
-        </div>
-        <div class="touch-group touch-actions">
-            <button id="touch-hold">H</button>
-            <button id="touch-rotate">↻</button>
-            <button id="touch-hard-drop">⟱</button>
-        </div>
+        </aside>
     </div>
 
     <!-- 모드 설명 모달 -->
@@ -127,7 +100,27 @@
         </div>
     </div>
 
+    <!-- 모바일 터치 컨트롤 -->
+    <div class="touch-controls">
+        <div class="touch-joystick">
+            <button id="touch-left">◀</button>
+            <button id="touch-right">▶</button>
+            <button id="touch-down">▼</button>
+        </div>
+        <div class="touch-actions">
+            <button id="touch-rotate">↻</button>
+            <button id="touch-hard-drop">DROP</button>
+            <button id="touch-hold">HOLD</button>
+        </div>
+    </div>
+
+    <!-- 사운드 파일 -->
+    <audio id="sound-move" src="sounds/move.wav" preload="auto"></audio>
+    <audio id="sound-rotate" src="sounds/rotate.wav" preload="auto"></audio>
+    <audio id="sound-lock" src="sounds/lock.wav" preload="auto"></audio>
+    <audio id="sound-clear" src="sounds/clear.wav" preload="auto"></audio>
+    <audio id="sound-gameover" src="sounds/gameover.wav" preload="auto"></audio>
+    
     <script src="game.js"></script>
 </body>
-
 </html>

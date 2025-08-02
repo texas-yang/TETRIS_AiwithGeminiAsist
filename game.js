@@ -1,5 +1,6 @@
 // DOM 요소 가져오기
 const canvas = document.getElementById('game-board');
+const gameContainer = document.querySelector('.game-container'); // 스크린 쉐이크를 위해 추가
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-piece');
 const nextCtx = nextCanvas.getContext('2d');
@@ -32,6 +33,7 @@ const DIFFICULTY_SETTINGS = {
     hard:   { initialInterval: 600,  speedUpPerLevel: 100 }
 };
 const MIN_DROP_INTERVAL = 50; // ms, 블록이 떨어지는 최소 간격
+const LOCK_DELAY = 500; // ms, 락 딜레이 시간
 
 // 블록 색상 테마 정의
 const COLOR_THEMES = [
@@ -107,6 +109,7 @@ let lastMoveWasRotate; // T-Spin 감지를 위해 마지막 행동이 회전이�
 let comboCounter; // 콤보 카운터
 let animationFrameId;
 let currentDifficulty; // 현재 난이도 설정
+let lockDelayTimer; // 락 딜레이 타이머
 let currentColors; // 현재 활성화된 색상 테마
 let isGameOver; // 게임 오버 상태를 추적하는 변수
 let isSoundOn; // 사운드 ON/OFF 상태
@@ -216,11 +219,11 @@ function playerDrop() {
     if (isAnimating) return;
     if (isPaused) return;
 
-    player.pos.y++; // 일단 한 칸 내립니다.
-
+    player.pos.y++;
     if (collide(board, player)) {
-        player.pos.y--; // 충돌했으므로 다시 올립니다.
-        lockPieceAndReset(); // 블록 고정 및 다음 블록 준비
+        player.pos.y--;
+        // 바로 고정하지 않고, update 루프에서 락 딜레이를 처리하도록 합니다.
+        // lockPieceAndReset();
     }
     dropCounter = 0;
     lastMoveWasRotate = false;
@@ -237,6 +240,13 @@ function playerMove(dir) {
     playSound('move');
     if (collide(board, player)) {
         player.pos.x -= dir;
+    } else {
+        // 성공적으로 이동했다면 락 딜레이를 리셋합니다.
+        player.pos.y++;
+        if (collide(board, player)) { // 바닥에 닿아있는지 확인
+            lockDelayTimer = 0;
+        }
+        player.pos.y--;
     }
 }
 
@@ -326,7 +336,8 @@ function lockPieceAndReset() {
         }
     }
 
-    playSound('lock'); // 블록이 고정되는 시점에 항상 사운드를 재생합니다.
+    createLockDownParticles(player); // 블록 고정 파티클 효과 추가
+    playSound('lock');
 
     merge(); // 1. 현재 조각을 보드에 먼저 합칩니다.
     sweepBoard(isTSpin);
@@ -372,6 +383,7 @@ function animateAndClearLines(rows, isTSpin) {
 
     isAnimating = true;
     playSound('clear');
+    triggerScreenShake(clearedLines); // 스크린 쉐이크 효과 추가
 
     // --- 폭발 애니메이션 추가 ---
     if (clearedLines > 0) {
@@ -421,13 +433,21 @@ function animateAndClearLines(rows, isTSpin) {
                 baseScore = tSpinScores[clearedLines] * level;
                 bonusText = 'T-Spin';
                 if (clearedLines === 2) bonusText += ' Double!';
-                if (clearedLines === 3) bonusText += ' Triple!';
-            } else if (clearedLines === 4) { // Tetris
-                isDifficultClear = true;
-                bonusText = 'TETRIS!';
+                else if (clearedLines === 3) bonusText += ' Triple!';
             } else {
-                if (clearedLines === 2) bonusText = 'Double!';
-                if (clearedLines === 3) bonusText = 'Triple!';
+                // T-Spin이 아닌 일반 라인 클리어
+                switch (clearedLines) {
+                    case 4: // Tetris
+                        isDifficultClear = true;
+                        bonusText = 'TETRIS!';
+                        break;
+                    case 3:
+                        bonusText = 'Triple!';
+                        break;
+                    case 2:
+                        bonusText = 'Double!';
+                        break;
+                }
             }
 
             // Back-to-Back 보너스
@@ -511,6 +531,14 @@ function playerRotate(dir) {
         if (!collide(board, player)) {
             // 충돌하지 않는 위치를 찾았으면 회전 성공
             lastMoveWasRotate = true;
+
+            // 성공적으로 회전했다면 락 딜레이를 리셋합니다.
+            player.pos.y++;
+            if (collide(board, player)) { // 바닥에 닿아있는지 확인
+                lockDelayTimer = 0;
+            }
+            player.pos.y--;
+
             return;
         }
 
@@ -769,6 +797,7 @@ function startGame() {
     if (sprintTimerId) clearInterval(sprintTimerId);
     isGameOver = false; // 게임 시작 시 isGameOver를 false로 초기화
 
+    lockDelayTimer = 0;
     // UI 초기화
     currentColors = COLOR_THEMES[0]; // 게임 시작 시 첫 번째 테마로 설정
 
@@ -868,6 +897,44 @@ function showFloatingText(text) {
 }
 
 /**
+ * 블록 고정 시 작은 파티클 효과(스플래시)를 생성합니다.
+ * @param {object} piece - 고정된 플레이어 블록 객체
+ */
+function createLockDownParticles(piece) {
+    const wrapper = document.querySelector('.game-board-wrapper');
+    if (!wrapper) return;
+
+    const particleCount = 15;
+    const particleSize = 4;
+
+    // 블록의 바운딩 박스 아래쪽 중앙을 기준으로 파티클 생성
+    const centerX = (piece.pos.x + piece.matrix[0].length / 2) * BLOCK_SIZE;
+    const bottomY = (piece.pos.y + piece.matrix.length) * BLOCK_SIZE;
+
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('explosion-particle');
+
+        particle.style.width = `${particleSize}px`;
+        particle.style.height = `${particleSize}px`;
+        // 시작 위치를 약간 랜덤하게
+        particle.style.left = `${centerX + (Math.random() - 0.5) * piece.matrix[0].length * BLOCK_SIZE}px`;
+        particle.style.top = `${bottomY - Math.random() * BLOCK_SIZE}px`;
+        particle.style.backgroundColor = piece.color;
+        particle.style.animationDuration = '0.4s'; // 지속시간 짧게
+
+        // 위로 튀어오르는 효과
+        const finalX = (Math.random() - 0.5) * 40;
+        const finalY = -Math.random() * 30 - 10; // 위로 튀어오르게
+
+        particle.style.setProperty('--explode-transform', `translate(${finalX}px, ${finalY}px)`);
+
+        wrapper.appendChild(particle);
+        particle.addEventListener('animationend', () => particle.remove());
+    }
+}
+
+/**
  * 라인 클리어 시 폭발 애니메이션을 생성합니다.
  * @param {number} centerX - 폭발 중심의 X 좌표 (px)
  * @param {number} centerY - 폭발 중심의 Y 좌표 (px)
@@ -915,6 +982,26 @@ function createExplosion(centerX, centerY, lineCount) {
 }
 
 /**
+ * 스크린 흔들림 효과를 트리거합니다.
+ * @param {number} lineCount - 지워진 라인 수
+ */
+function triggerScreenShake(lineCount) {
+    if (!gameContainer) return;
+
+    // 이전에 적용된 shake 클래스를 제거하여 애니메이션이 다시 트리거되도록 합니다.
+    gameContainer.classList.remove('shake', 'shake-hard');
+    void gameContainer.offsetWidth; // 브라우저 리플로우 강제
+
+    if (lineCount >= 4) { // 테트리스는 더 강하게
+        gameContainer.classList.add('shake-hard');
+    } else if (lineCount > 0) {
+        gameContainer.classList.add('shake');
+    }
+
+    // 애니메이션이 끝나면 클래스를 제거하여 다음을 준비합니다.
+    setTimeout(() => gameContainer.classList.remove('shake', 'shake-hard'), 400);
+}
+/**
  * 사운드 ON/OFF 상태를 토글하고 UI를 업데이트합니다.
  */
 function toggleSound() {
@@ -928,7 +1015,7 @@ function toggleSound() {
  * 사운드 버튼의 텍스트와 스타일을 현재 상태에 맞게 업데이트합니다.
  */
 function updateSoundButton() {
-    soundBtn.textContent = isSoundOn ? 'Sound ON' : 'Sound OFF';
+    soundBtn.textContent = isSoundOn ? '소리 켜기' : '소리 끄기';
     if (isSoundOn) {
         soundBtn.classList.remove('sound-off');
     } else {
@@ -1029,11 +1116,11 @@ function setupTouchControls() {
 function showModeDescription(mode) {
     const modeDescriptions = {
         MARATHON: {
-            title: '마라톤 모드 (Marathon)',
+            title: '마라톤 모드',
             description: '클래식 테트리스 모드입니다. 라인을 클리어하여 점수를 획득하고, 레벨이 오를수록 블록이 떨어지는 속도가 빨라집니다. 최대한 높은 점수를 기록하는 것이 목표입니다.'
         },
         SPRINT: {
-            title: '스프린트 모드 (Sprint)',
+            title: '스프린트 모드',
             description: '타임 어택 모드입니다. 40줄의 라인을 최대한 빠른 시간 안에 지우는 것이 목표입니다. 당신의 속도와 효율성을 시험해보세요!'
         }
     };
@@ -1059,9 +1146,25 @@ function update(time = 0) {
     const deltaTime = time - lastTime;
     lastTime = time;
 
+    // 1. 자동 하강 처리
     dropCounter += deltaTime;
     if (dropCounter > dropInterval) {
         playerDrop(); // 이 함수 내부에서 게임 오버가 발생할 수 있습니다.
+    }
+
+    // 2. 락 딜레이 처리
+    player.pos.y++;
+    const onGround = collide(board, player);
+    player.pos.y--;
+
+    if (onGround) {
+        lockDelayTimer += deltaTime;
+        if (lockDelayTimer >= LOCK_DELAY) {
+            lockPieceAndReset(); // 딜레이 시간이 지나면 블록 고정
+            lockDelayTimer = 0;
+        }
+    } else {
+        lockDelayTimer = 0; // 공중에 떠 있으면 타이머 리셋
     }
 
     // playerDrop() 함수가 게임 오버를 유발했을 수 있습니다.
