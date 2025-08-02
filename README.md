@@ -39,7 +39,6 @@ HTML, CSS, JavaScript로 구현된 클래식 테트리스 게임입니다. Gemin
     -   **Back-to-Back (B2B)**: 테트리스(4줄 클리어)나 T-Spin을 연속으로 성공시키면 추가 점수 보너스를 받습니다.
 -   **버그 수정 및 개선** (2025-08-06):
     -   **점수 로직 수정**: 4줄을 클리어했을 때 'Triple!'이 아닌 'TETRIS!'가 정상적으로 표시되도록 보너스 텍스트 로직을 수정했습니다.
-
 ## 🛠️ 개발 워크플로우 및 사용 기술
 
 이 프로젝트는 웹 표준 기술인 HTML, CSS, JavaScript를 기반으로 각 파일이 명확한 역할을 수행하도록 개발되었습니다.
@@ -75,13 +74,11 @@ HTML, CSS, JavaScript로 구현된 클래식 테트리스 게임입니다. Gemin
 
 ## 🖼️ 스크린샷
 
-> [!NOTE]
-> 아래 스크린샷은 UI 개편 전의 모습입니다. 최신 레이아웃은 게임을 직접 실행하여 확인해주세요.
-
-<img width="494" height="865" alt="image" src="https://github.com/user-attachments/assets/15d42ebd-53b1-49c0-9141-a6d9f93301e1" />
-
-<img width="507" height="868" alt="image" src="https://github.com/user-attachments/assets/5ce74189-8078-41d2-b092-4070f96498a9" />
-
-> 아래 스크린샷은 UI 개편 후 모습.
+**최신 UI (대칭 레이아웃)**
 
 <img width="626" height="764" alt="image" src="https://github.com/user-attachments/assets/9f8d6a24-5abd-4add-8d81-77f2ca6382c0" />
+
+**이전 UI (개편 전)**
+
+<img width="494" height="865" alt="image" src="https://github.com/user-attachments/assets/15d42ebd-53b1-49c0-9141-a6d9f93301e1" />
+<img width="507" height="868" alt="image" src="https://github.com/user-attachments/assets/5ce74189-8078-41d2-b092-4070f96498a9" />
