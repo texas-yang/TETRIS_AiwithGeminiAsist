@@ -308,8 +308,23 @@ body {
         color: white;
         font-size: 24px;
     }
-    .touch-joystick, .touch-actions {
+    .touch-actions {
         display: flex;
         gap: 15px;
     }
+    .touch-joystick {
+        display: grid;
+        gap: 15px;
+        grid-template-areas:
+            ". rotate ."
+            "left . right"
+            ". down .";
+        grid-template-columns: repeat(3, 60px);
+        grid-template-rows: repeat(3, 60px);
+    }
+
+    #touch-rotate { grid-area: rotate; }
+    #touch-left   { grid-area: left; }
+    #touch-right  { grid-area: right; }
+    #touch-down   { grid-area: down; }
 }
