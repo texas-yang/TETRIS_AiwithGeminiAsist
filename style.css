@@ -7,6 +7,7 @@
     --border-color: #333;
     --text-color: #e0e0e0;
     --highlight-color: #bb86fc;
+    --touch-bg-color: rgba(255, 255, 255, 0.2);
     --font-family: 'Roboto Mono', monospace;
 }
 
@@ -316,7 +317,7 @@ body {
         height: 60px;
         border-radius: 50%;
         border: 2px solid var(--border-color);
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: var(--touch-bg-color);
         color: white;
         font-size: 24px;
     }
