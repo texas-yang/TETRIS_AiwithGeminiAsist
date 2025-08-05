@@ -817,6 +817,56 @@ function resetGameState() {
 }
 
 /**
+ * 게임을 중단하고, 사용자가 모드와 난이도를 다시 선택할 수 있는
+ * 초기 화면 상태로 되돌립니다.
+ */
+function returnToMainMenu() {
+    // 1. 활성화된 게임 루프 및 타이머 중지
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    if (sprintTimerId) {
+        clearInterval(sprintTimerId);
+        sprintTimerId = null;
+    }
+
+    // 2. 핵심 게임 상태 변수 초기화
+    resetGameState();
+
+    // 3. UI 표시 요소들을 초기 상태로 리셋
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+    holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+    
+    scoreElem.textContent = '0';
+    levelElem.textContent = '1';
+    linesLeftElem.textContent = '40';
+    timerElem.textContent = '0.000';
+    
+    // 4. 버튼 상태 초기화
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    restartBtn.disabled = true;
+    startBtn.textContent = '게임 시작';
+    pauseBtn.textContent = '일시정지';
+
+    // 5. 설정 선택 라디오 버튼 활성화
+    document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = false);
+    document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = false);
+
+    // 6. 모바일 터치 컨트롤 UI 및 상태 초기화
+    if (touchStartBtn) touchStartBtn.style.display = 'block';
+    if (touchHoldBtn) {
+        touchHoldBtn.style.display = 'none';
+        touchHoldBtn.innerHTML = '일시<br>정지'; // 일시정지 상태였을 경우를 대비해 텍스트 리셋
+    }
+
+    // 7. 현재 선택된 라디오 버튼에 맞게 UI 가시성 업데이트
+    updateUIVisibility();
+}
+
+/**
  * 게임을 시작하는 함수
  */
 function startGame() {
@@ -1149,8 +1199,8 @@ function setupTouchControls() {
     addSingleTouch(touchRotate, () => playerRotate(1));
     addSingleTouch(touchHardDrop, playerHardDrop);
     addSingleTouch(touchHoldBtn, togglePause, true); // HOLD 버튼을 PAUSE 기능으로 변경하고, 멈춤 상태에서도 작동하도록 설정
-    // 모바일 새로고침 버튼 기능 추가 (언제든지 재시작 가능)
-    if (touchRefreshBtn) addSingleTouch(touchRefreshBtn, startGame, true);
+    // 모바일 '처음으로' 버튼: 게임을 초기 메뉴로 되돌림
+    if (touchRefreshBtn) addSingleTouch(touchRefreshBtn, returnToMainMenu, true);
 
     if (touchStartBtn) {
         touchStartBtn.addEventListener('touchstart', (e) => {
@@ -1313,7 +1363,7 @@ function setupEventListeners() {
 
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
-    restartBtn.addEventListener('click', startGame); // '처음으로' 버튼 클릭 시 게임을 새로 시작
+    restartBtn.addEventListener('click', returnToMainMenu); // '처음으로' 버튼 클릭 시 초기 메뉴로
     soundBtn.addEventListener('click', toggleSound);
 }
 
