@@ -256,6 +256,7 @@ body {
     body {
         align-items: flex-start;
         padding-top: 20px;
+        overflow-y: auto; /* 콘텐츠가 길어질 때 세로 스크롤 허용 */
     }
     .game-container {
         flex-direction: column;
@@ -270,7 +271,12 @@ body {
     .left-sidebar { order: 2; }
     .game-board-wrapper { order: 1; }
     .right-sidebar { order: 3; }
-
+    
+    /* 오른쪽 사이드바는 패널들을 세로로 쌓도록 재정의 */
+    .right-sidebar {
+        flex-direction: column;
+        gap: 15px;
+    }
     .panel { padding: 10px; }
     .panel p { font-size: 1.2em; }
     .panel h3, .panel h4 { font-size: 0.7em; }
@@ -286,18 +292,13 @@ body {
         flex-grow: 2;
         justify-content: center;
     }
+    /* 컨트롤 패널을 다시 표시하고, 터치 컨트롤은 숨깁니다. */
     .controls-panel, .settings-panel {
-        display: none; /* 모바일에서는 터치 컨트롤을 사용하므로 숨김 */
+        display: flex;
     }
 
-    /* 모바일 터치 컨트롤 표시 */
     .touch-controls {
-        display: flex;
-        position: fixed;
-        bottom: 20px;
-        width: 100%;
-        justify-content: space-around;
-        user-select: none;
+        display: none; /* 스크롤 가능한 컨트롤을 사용하므로 숨김 */
     }
     .touch-controls button {
         width: 60px;
