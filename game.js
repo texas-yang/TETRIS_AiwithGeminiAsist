@@ -1079,8 +1079,12 @@ function togglePause() {
         ctx.textAlign = 'center';
         ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
         pauseBtn.textContent = '계속하기';
+        // 모바일 터치 버튼 텍스트도 변경
+        if (touchHoldBtn) touchHoldBtn.innerHTML = '계속<br>하기';
     } else {
         pauseBtn.textContent = '일시정지';
+        // 모바일 터치 버튼 텍스트도 원래대로 변경
+        if (touchHoldBtn) touchHoldBtn.innerHTML = '일시<br>정지';
         update(); // 게임 루프 재개
     }
 }
