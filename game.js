@@ -20,6 +20,8 @@ const modal = document.getElementById('mode-description-modal');
 const modalTitle = document.getElementById('modal-title');
 const modalDescription = document.getElementById('modal-description');
 const closeButton = document.querySelector('.close-button');
+const touchStartBtn = document.getElementById('touch-start');
+const touchHoldBtn = document.getElementById('touch-hold');
 
 // 게임 상수 정의
 const COLS = 10; // 가로 칸 수
@@ -178,11 +180,11 @@ function draw() {
     // 메인 보드 그리기
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    drawMatrix(board, { x: 0, y: 0 }); // 고정된 블록들 그리기
+    drawMatrix(ctx, board, { x: 0, y: 0 }); // 고정된 블록들 그리기
 
     // 고스트 피스 그리기
     drawGhostPiece();
-    drawMatrix(player.matrix, player.pos, player.color); // 움직이는 블록 그리기
+    drawMatrix(ctx, player.matrix, player.pos, player.color); // 움직이는 블록 그리기
 
 }
 
@@ -192,16 +194,17 @@ function draw() {
  * @param {{x: number, y: number}} offset - 그릴 위치 오프셋
  * @param {string} [colorOverride] - 블록 색상 (제공 시 이 색상으로 덮어씀)
  */
-function drawMatrix(matrix, offset, colorOverride = null) {
-    const drawCtx = colorOverride === GHOST_COLOR ? ctx : this.ctx || ctx; // Allow drawing on different contexts
+function drawMatrix(drawCtx, matrix, offset, colorOverride = null) {
+    // 고스트 피스는 항상 메인 컨텍스트(ctx)에 그려져야 합니다.
+    const targetCtx = colorOverride === GHOST_COLOR ? ctx : drawCtx;
 
     matrix.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value !== 0) {
                 // 보드에 저장된 값(블록 타입)을 기반으로 현재 테마에서 색상을 찾습니다.
                 // 플레이어 블록은 colorOverride를 사용합니다.
-                drawCtx.fillStyle = colorOverride || currentColors[value];
-                drawCtx.fillRect((x + offset.x) * BLOCK_SIZE, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                targetCtx.fillStyle = colorOverride || currentColors[value];
+                targetCtx.fillRect((x + offset.x) * BLOCK_SIZE, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
             }
         });
     });
@@ -251,12 +254,7 @@ function playerMove(dir) {
     if (collide(board, player)) {
         player.pos.x -= dir;
     } else {
-        // 성공적으로 이동했다면 락 딜레이를 리셋합니다.
-        player.pos.y++;
-        if (collide(board, player)) { // 바닥에 닿아있는지 확인
-            lockDelayTimer = 0;
-        }
-        player.pos.y--;
+        resetLockDelayIfOnGround();
     }
 }
 
@@ -542,12 +540,7 @@ function playerRotate(dir) {
             // 충돌하지 않는 위치를 찾았으면 회전 성공
             lastMoveWasRotate = true;
 
-            // 성공적으로 회전했다면 락 딜레이를 리셋합니다.
-            player.pos.y++;
-            if (collide(board, player)) { // 바닥에 닿아있는지 확인
-                lockDelayTimer = 0;
-            }
-            player.pos.y--;
+            resetLockDelayIfOnGround();
 
             return;
         }
@@ -573,6 +566,18 @@ function rotateMatrix(matrix, dir) {
     matrix.reverse();
 }
 
+/**
+ * 블록이 바닥에 닿아있을 경우 락 딜레이 타이머를 리셋합니다.
+ * 플레이어가 움직이거나 회전했을 때 호출됩니다.
+ */
+function resetLockDelayIfOnGround() {
+    player.pos.y++;
+    const onGround = collide(board, player);
+    player.pos.y--;
+    if (onGround) {
+        lockDelayTimer = 0;
+    }
+}
 /**
  * T-Spin 조건을 확인하는 헬퍼 함수
  * @param {Array<Array<number>>} board - 게임 보드
@@ -658,6 +663,9 @@ function handleGameOver() {
     startBtn.textContent = '다시 시작';
     document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = false);
     document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = false);
+
+    if (touchStartBtn) touchStartBtn.style.display = 'block';
+    if (touchHoldBtn) touchHoldBtn.style.display = 'none';
 }
 
 /**
@@ -686,6 +694,9 @@ function handleSprintClear() {
     startBtn.textContent = '다시 시작';
     document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = false);
     document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = false);
+
+    if (touchStartBtn) touchStartBtn.style.display = 'block';
+    if (touchHoldBtn) touchHoldBtn.style.display = 'none';
 }
 
 /**
@@ -779,16 +790,7 @@ function formatTime(ms) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
 }
 
-/**
- * 게임을 시작하는 함수
- */
-function startGame() {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
-    // 선택된 게임 모드를 가져옵니다.
-    gameMode = document.querySelector('input[name="game-mode"]:checked').value;
-
-    // 게임 상태 초기화
+function resetGameState() {
     board = createBoard();
     player = JSON.parse(JSON.stringify(playerInitialState)); // Deep copy
     score = 0;
@@ -804,12 +806,26 @@ function startGame() {
     dropCounter = 0;
     lastTime = 0;
     sprintTimer = 0;
-    if (sprintTimerId) clearInterval(sprintTimerId);
-    isGameOver = false; // 게임 시작 시 isGameOver를 false로 초기화
-
+    if (sprintTimerId) {
+        clearInterval(sprintTimerId);
+        sprintTimerId = null;
+    }
+    isGameOver = false;
     lockDelayTimer = 0;
-    // UI 초기화
     currentColors = COLOR_THEMES[0]; // 게임 시작 시 첫 번째 테마로 설정
+}
+
+/**
+ * 게임을 시작하는 함수
+ */
+function startGame() {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+    // 선택된 게임 모드를 가져옵니다.
+    gameMode = document.querySelector('input[name="game-mode"]:checked').value;
+
+    // 게임 상태 초기화
+    resetGameState();
 
     // 모드에 따라 UI 및 게임 설정 조정
     if (gameMode === 'MARATHON') {
@@ -842,6 +858,9 @@ function startGame() {
     pauseBtn.textContent = '일시정지';
     document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.disabled = true);
     document.querySelectorAll('input[name="game-mode"]').forEach(radio => radio.disabled = true);
+
+    if (touchStartBtn) touchStartBtn.style.display = 'none';
+    if (touchHoldBtn) touchHoldBtn.style.display = 'block';
 }
 
 /** 다음 블록을 미리 보여주는 함수 */
@@ -852,7 +871,7 @@ function drawNextPiece() {
     // 캔버스 중앙에 블록을 그리기 위해 오프셋을 동적으로 계산합니다.
     const offsetX = (nextCanvas.width / BLOCK_SIZE - matrix[0].length) / 2;
     const offsetY = (nextCanvas.height / BLOCK_SIZE - matrix.length) / 2;
-    drawMatrix.call({ ctx: nextCtx }, matrix, { x: offsetX, y: offsetY }, color);
+    drawMatrix(nextCtx, matrix, { x: offsetX, y: offsetY }, color);
 }
 
 /** 홀드된 블록을 보여주는 함수 */
@@ -864,7 +883,7 @@ function drawHoldPiece() {
         // 캔버스 중앙에 블록을 그리기 위해 오프셋을 동적으로 계산합니다.
         const offsetX = (holdCanvas.width / BLOCK_SIZE - matrix[0].length) / 2;
         const offsetY = (holdCanvas.height / BLOCK_SIZE - matrix.length) / 2;
-        drawMatrix.call({ ctx: holdCtx }, matrix, { x: offsetX, y: offsetY }, color);
+        drawMatrix(holdCtx, matrix, { x: offsetX, y: offsetY }, color);
     }
 }
 
@@ -875,7 +894,7 @@ function drawGhostPiece() {
         ghost.pos.y++;
     }
     ghost.pos.y--;
-    drawMatrix(ghost.matrix, ghost.pos, GHOST_COLOR);
+    drawMatrix(ctx, ghost.matrix, ghost.pos, GHOST_COLOR);
 }
 
 /** 사운드를 재생하는 함수 */
@@ -1079,7 +1098,6 @@ function setupTouchControls() {
     const touchDown = document.getElementById('touch-down');
     const touchRotate = document.getElementById('touch-rotate');
     const touchHardDrop = document.getElementById('touch-hard-drop');
-    const touchHold = document.getElementById('touch-hold');
 
     let moveInterval;
     const moveDelay = 120; // ms
@@ -1118,7 +1136,17 @@ function setupTouchControls() {
 
     addSingleTouch(touchRotate, () => playerRotate(1));
     addSingleTouch(touchHardDrop, playerHardDrop);
-    addSingleTouch(touchHold, togglePause, true); // HOLD 버튼을 PAUSE 기능으로 변경하고, 멈춤 상태에서도 작동하도록 설정
+    addSingleTouch(touchHoldBtn, togglePause, true); // HOLD 버튼을 PAUSE 기능으로 변경하고, 멈춤 상태에서도 작동하도록 설정
+
+    if (touchStartBtn) {
+        touchStartBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            // 게임이 실행 중이 아닐 때만 startGame 호출
+            if (!animationFrameId) {
+                startGame();
+            }
+        }, { passive: false });
+    }
 }
 // --- 게임 루프 및 이벤트 핸들러 ---
 
@@ -1230,23 +1258,21 @@ document.addEventListener('keydown', event => {
             break;
         case 'c':
         case 'C':
-            if (event.key.toLowerCase() === KEY_MAP.HOLD) playerHold();
+            playerHold();
             break;
     }
 });
 
-
-/**
- * 게임 초기화
- */
-function init() {
-    // 로컬 스토리지에서 사운드 설정을 불러옵니다.
+function loadSettings() {
     const savedSoundSetting = localStorage.getItem('tetrisSoundOn');
     // 저장된 값이 없으면 true(ON)를 기본값으로, 있으면 해당 값을 boolean으로 변환합니다.
     isSoundOn = savedSoundSetting === null ? true : (savedSoundSetting === 'true');
     updateSoundButton();
-    
-    // 모드 선택 라디오 버튼에 이벤트 리스너 추가
+    loadHighScore();
+    loadBestTime();
+}
+
+function setupEventListeners() {
     document.querySelectorAll('input[name="game-mode"]').forEach(radio => {
         radio.addEventListener('change', (event) => {
             // 라디오 버튼이 변경될 때마다 UI를 즉시 업데이트합니다.
@@ -1256,27 +1282,28 @@ function init() {
         });
     });
 
-    // 모달 닫기 이벤트 리스너
-    closeButton.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    // 모달 바깥 영역 클릭 시 닫기
+    closeButton.addEventListener('click', () => modal.style.display = 'none');
     window.addEventListener('click', (event) => {
         if (event.target == modal) {
             modal.style.display = 'none';
         }
     });
 
-    loadHighScore();
-    loadBestTime();
-
-    // 이벤트 리스너 등록
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', startGame); // '처음으로' 버튼 클릭 시 게임을 새로 시작
     soundBtn.addEventListener('click', toggleSound);
+}
+
+/**
+ * 게임 초기화
+ */
+function init() {
+    loadSettings();
+    setupEventListeners();
     setupTouchControls(); // 터치 컨트롤 설정
+
+    if (touchHoldBtn) touchHoldBtn.style.display = 'none';
 }
 
 // 게임 초기화 함수 호출
