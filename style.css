@@ -9,6 +9,13 @@
     --highlight-color: #bb86fc;
     --touch-bg-color: rgba(255, 255, 255, 0.2);
     --font-family: 'Roboto Mono', monospace;
+    --touch-joystick-btn-size: 60px;
+    --layout-gap-mobile: 15px;
+    --radius-sm: 4px;  /* 작은 모서리 둥글기 */
+    --radius-md: 8px;  /* 중간 모서리 둥글기 */
+    --radius-lg: 10px; /* 큰 모서리 둥글기 */
+    --board-width: 300px; /* 게임 보드 너비 (COLS * BLOCK_SIZE) */
+    --modal-max-width: 500px;
 }
 
 body {
@@ -55,7 +62,7 @@ body {
 .panel {
     background-color: var(--panel-bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 15px;
     text-align: center;
 }
@@ -89,7 +96,7 @@ body {
 
 #hold-piece, #next-piece {
     background-color: #000;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 /* 컨트롤 버튼 스타일 */
@@ -97,7 +104,7 @@ body {
     width: 100%;
     padding: 12px;
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     background-color: var(--highlight-color);
     color: #000;
     font-family: var(--font-family);
@@ -207,8 +214,8 @@ body {
     padding: 20px;
     border: 1px solid var(--border-color);
     width: 80%;
-    max-width: 500px;
-    border-radius: 10px;
+    max-width: var(--modal-max-width);
+    border-radius: var(--radius-lg);
     position: relative;
 }
 
@@ -266,7 +273,7 @@ body {
     .sidebar {
         flex-direction: row;
         width: 100%;
-        max-width: 300px; /* 게임 보드 너비에 맞춤 */
+        max-width: var(--board-width); /* 게임 보드 너비에 맞춤 */
         justify-content: space-between;
     }
     .left-sidebar { order: 2; }
@@ -276,7 +283,7 @@ body {
     /* 오른쪽 사이드바는 패널들을 세로로 쌓도록 재정의 */
     .right-sidebar {
         flex-direction: column;
-        gap: 15px;
+        gap: var(--layout-gap-mobile);
     }
     .panel { padding: 10px; }
     .panel p { font-size: 1.2em; }
@@ -313,8 +320,8 @@ body {
         box-sizing: border-box;
     }
     .touch-controls button {
-        width: 60px;
-        height: 60px;
+        width: var(--touch-joystick-btn-size);
+        height: var(--touch-joystick-btn-size);
         border-radius: 50%;
         border: 2px solid var(--border-color);
         background-color: var(--touch-bg-color);
@@ -323,17 +330,17 @@ body {
     }
     .touch-actions {
         display: flex;
-        gap: 15px;
+        gap: var(--layout-gap-mobile);
     }
     .touch-joystick {
         display: grid;
-        gap: 15px;
+        gap: var(--layout-gap-mobile);
         grid-template-areas:
             ". rotate ."
             "left . right"
             ". down .";
-        grid-template-columns: repeat(3, 60px);
-        grid-template-rows: repeat(3, 60px);
+        grid-template-columns: repeat(3, var(--touch-joystick-btn-size));
+        grid-template-rows: repeat(3, var(--touch-joystick-btn-size));
     }
 
     #touch-rotate { grid-area: rotate; }

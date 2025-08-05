@@ -1091,10 +1091,13 @@ function setupTouchControls() {
         element.addEventListener('touchcancel', stopMove);
     };
 
-    const addSingleTouch = (element, action) => {
+    const addSingleTouch = (element, action, allowWhenPaused = false) => {
         element.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (isPaused || isAnimating || !animationFrameId) return;
+            // '일시 정지' 버튼은 게임이 멈춘 상태에서도 작동해야 하므로 예외 처리
+            if (!allowWhenPaused && (isPaused || isAnimating || !animationFrameId)) {
+                return;
+            }
             action();
         }, { passive: false });
     };
@@ -1105,7 +1108,7 @@ function setupTouchControls() {
 
     addSingleTouch(touchRotate, () => playerRotate(1));
     addSingleTouch(touchHardDrop, playerHardDrop);
-    addSingleTouch(touchHold, playerHold);
+    addSingleTouch(touchHold, togglePause, true); // HOLD 버튼을 PAUSE 기능으로 변경하고, 멈춤 상태에서도 작동하도록 설정
 }
 // --- 게임 루프 및 이벤트 핸들러 ---
 
