@@ -35,6 +35,16 @@ const DIFFICULTY_SETTINGS = {
 const MIN_DROP_INTERVAL = 50; // ms, 블록이 떨어지는 최소 간격
 const LOCK_DELAY = 500; // ms, 락 딜레이 시간
 
+// 키보드 입력 상수 정의
+const KEY_MAP = {
+    LEFT: 'ArrowLeft',
+    RIGHT: 'ArrowRight',
+    DOWN: 'ArrowDown',
+    ROTATE: 'ArrowUp',
+    HARD_DROP: ' ',
+    HOLD: 'c',
+    PAUSE: 'p'
+};
 // 블록 색상 테마 정의
 const COLOR_THEMES = [
     // 1. 클래식
@@ -1183,12 +1193,12 @@ function update(time = 0) {
 // 키보드 입력 처리
 document.addEventListener('keydown', event => {
     // 게임이 시작되지 않았으면 아무것도 하지 않음
-    if (!animationFrameId && event.key !== 'Enter') {
+    if (!animationFrameId) {
         return;
     }
 
     // 'P' 키로 일시정지/재개
-    if (event.key.toLowerCase() === 'p') {
+    if (event.key.toLowerCase() === KEY_MAP.PAUSE) {
         togglePause();
         return;
     }
@@ -1197,22 +1207,22 @@ document.addEventListener('keydown', event => {
     if (isPaused) return;
 
     // 페이지 스크롤을 유발할 수 있는 키들의 기본 동작을 막습니다.
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
+    if ([KEY_MAP.ROTATE, KEY_MAP.DOWN, KEY_MAP.LEFT, KEY_MAP.RIGHT, KEY_MAP.HARD_DROP].includes(event.key)) {
         event.preventDefault();
     }
 
     switch (event.key) {
-        case 'ArrowLeft':
+        case KEY_MAP.LEFT:
             playerMove(-1);
             break;
-        case 'ArrowRight':
+        case KEY_MAP.RIGHT:
             playerMove(1);
             break;
-        case 'ArrowDown':
+        case KEY_MAP.DOWN:
             playerDrop();
             lastMoveWasRotate = false;
             break;
-        case 'ArrowUp':
+        case KEY_MAP.ROTATE:
             playerRotate(1);
             break;
         case ' ': // 스페이스바
@@ -1220,7 +1230,7 @@ document.addEventListener('keydown', event => {
             break;
         case 'c':
         case 'C':
-            playerHold();
+            if (event.key.toLowerCase() === KEY_MAP.HOLD) playerHold();
             break;
     }
 });

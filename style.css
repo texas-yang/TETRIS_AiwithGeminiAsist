@@ -334,7 +334,9 @@ body {
     }
     .touch-actions {
         display: flex;
+        flex-direction: column; /* 버튼을 세로로 쌓도록 변경 */
         gap: var(--layout-gap-mobile);
+        order: 1; /* 액션 버튼 그룹(HOLD/DROP)을 왼쪽으로 이동 */
     }
     .touch-joystick {
         display: grid;
@@ -345,10 +347,15 @@ body {
             ". down .";
         grid-template-columns: repeat(3, var(--touch-joystick-btn-size));
         grid-template-rows: repeat(3, var(--touch-joystick-btn-size));
+        order: 2; /* 조이스틱 그룹을 오른쪽으로 이동 */
     }
 
     #touch-rotate { grid-area: rotate; }
     #touch-left   { grid-area: left; }
     #touch-right  { grid-area: right; }
     #touch-down   { grid-area: down; }
+
+    /* 액션 버튼(HOLD/DROP)의 세로 순서를 지정합니다. */
+    #touch-hard-drop { order: 1; } /* DROP 버튼을 위로 */
+    #touch-hold      { order: 2; } /* HOLD 버튼을 아래로 */
 }
