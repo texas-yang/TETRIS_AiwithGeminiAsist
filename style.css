@@ -16,6 +16,10 @@
     --radius-lg: 10px; /* 큰 모서리 둥글기 */
     --board-width: 300px; /* 게임 보드 너비 (COLS * BLOCK_SIZE) */
     --modal-max-width: 500px;
+    /* z-index 계층 관리 */
+    --z-touch-controls: 50;
+    --z-modal: 100;
+    --font-size-touch-icon: 24px;
 }
 
 body {
@@ -198,7 +202,7 @@ body {
 .modal {
     display: none;
     position: fixed;
-    z-index: 100;
+    z-index: var(--z-modal);
     left: 0;
     top: 0;
     width: 100%;
@@ -315,7 +319,7 @@ body {
         justify-content: space-around;
         align-items: center;
         user-select: none;
-        z-index: 50; /* 다른 요소 위에 표시되도록 z-index 추가 */
+        z-index: var(--z-touch-controls); /* 다른 요소 위에 표시되도록 z-index 추가 */
         padding: 0 10px;
         box-sizing: border-box;
     }
@@ -326,7 +330,7 @@ body {
         border: 2px solid var(--border-color);
         background-color: var(--touch-bg-color);
         color: white;
-        font-size: 24px;
+        font-size: var(--font-size-touch-icon);
     }
     .touch-actions {
         display: flex;
