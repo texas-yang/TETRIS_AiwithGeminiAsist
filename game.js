@@ -22,6 +22,7 @@ const modalDescription = document.getElementById('modal-description');
 const closeButton = document.querySelector('.close-button');
 const touchStartBtn = document.getElementById('touch-start');
 const touchHoldBtn = document.getElementById('touch-hold');
+const touchRefreshBtn = document.getElementById('touch-refresh');
 
 // 게임 상수 정의
 const COLS = 10; // 가로 칸 수
@@ -903,7 +904,14 @@ function playSound(id) {
     const sound = document.getElementById(`sound-${id}`);
     if (sound) {
         sound.currentTime = 0;
-        sound.play();
+        const playPromise = sound.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                // 자동 재생 오류는 사용자가 화면을 한 번 클릭하면 해결되므로,
+                // 콘솔에만 조용히 에러를 남깁니다.
+                console.error(`'sound-${id}' 재생 오류:`, error);
+            });
+        }
     }
 }
 
@@ -1044,7 +1052,7 @@ function toggleSound() {
  * 사운드 버튼의 텍스트와 스타일을 현재 상태에 맞게 업데이트합니다.
  */
 function updateSoundButton() {
-    soundBtn.textContent = isSoundOn ? '소리 켜기' : '소리 끄기';
+    soundBtn.textContent = isSoundOn ? '소리 끄기' : '소리 켜기';
     if (isSoundOn) {
         soundBtn.classList.remove('sound-off');
     } else {
@@ -1137,6 +1145,8 @@ function setupTouchControls() {
     addSingleTouch(touchRotate, () => playerRotate(1));
     addSingleTouch(touchHardDrop, playerHardDrop);
     addSingleTouch(touchHoldBtn, togglePause, true); // HOLD 버튼을 PAUSE 기능으로 변경하고, 멈춤 상태에서도 작동하도록 설정
+    // 모바일 새로고침 버튼 기능 추가 (언제든지 재시작 가능)
+    if (touchRefreshBtn) addSingleTouch(touchRefreshBtn, startGame, true);
 
     if (touchStartBtn) {
         touchStartBtn.addEventListener('touchstart', (e) => {
@@ -1175,6 +1185,26 @@ function showModeDescription(mode) {
 }
 
 /**
+ * 블록이 바닥에 닿았을 때의 락 딜레이를 처리합니다.
+ * @param {number} deltaTime - 프레임 간의 시간 간격
+ */
+function handleLockDelay(deltaTime) {
+    player.pos.y++;
+    const onGround = collide(board, player);
+    player.pos.y--;
+
+    if (onGround) {
+        lockDelayTimer += deltaTime;
+        if (lockDelayTimer >= LOCK_DELAY) {
+            lockPieceAndReset(); // 딜레이 시간이 지나면 블록 고정
+            lockDelayTimer = 0;
+        }
+    } else {
+        lockDelayTimer = 0; // 공중에 떠 있으면 타이머 리셋
+    }
+}
+
+/**
  * 게임 상태를 업데이트하고 화면을 다시 그리는 메인 루프
  * @param {number} time - requestAnimationFrame이 제공하는 타임스탬프
  */
@@ -1194,19 +1224,7 @@ function update(time = 0) {
     }
 
     // 2. 락 딜레이 처리
-    player.pos.y++;
-    const onGround = collide(board, player);
-    player.pos.y--;
-
-    if (onGround) {
-        lockDelayTimer += deltaTime;
-        if (lockDelayTimer >= LOCK_DELAY) {
-            lockPieceAndReset(); // 딜레이 시간이 지나면 블록 고정
-            lockDelayTimer = 0;
-        }
-    } else {
-        lockDelayTimer = 0; // 공중에 떠 있으면 타이머 리셋
-    }
+    handleLockDelay(deltaTime);
 
     // playerDrop() 함수가 게임 오버를 유발했을 수 있습니다.
     // 이 경우, handleGameOver()에 의해 그려진 'GAME OVER' 화면이
