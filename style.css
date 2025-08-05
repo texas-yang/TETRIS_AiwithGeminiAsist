@@ -292,13 +292,24 @@ body {
         flex-grow: 2;
         justify-content: center;
     }
-    /* 컨트롤 패널을 다시 표시하고, 터치 컨트롤은 숨깁니다. */
+    /* 컨트롤 패널을 표시합니다. */
     .controls-panel, .settings-panel {
         display: flex;
     }
 
+    /* 모바일 터치 컨트롤을 화면 하단에 고정하여 표시합니다. */
     .touch-controls {
-        display: none; /* 스크롤 가능한 컨트롤을 사용하므로 숨김 */
+        display: flex;
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        width: 100%;
+        justify-content: space-around;
+        align-items: center;
+        user-select: none;
+        z-index: 50; /* 다른 요소 위에 표시되도록 z-index 추가 */
+        padding: 0 10px;
+        box-sizing: border-box;
     }
     .touch-controls button {
         width: 60px;
